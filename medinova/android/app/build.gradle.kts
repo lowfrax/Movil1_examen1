@@ -24,7 +24,9 @@ android {
         applicationId = "com.example.medinova"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+
+        //el valor de minSdkVersion se cambio a 21 para que funcione la dependencia de bluetooth
+        minSdk = 21
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

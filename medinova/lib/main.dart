@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'views/test_view.dart';
+import 'views/test_view.dart'; // Vista de prueba, navega a BLE
 
 void main() {
   runApp(const MyApp());

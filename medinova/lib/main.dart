@@ -1,6 +1,13 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 void main() {
+  //inicio de la app
+  // importar la libreria de flutter blue plus
+    //este fragmento de codigo es para ver los logs en consola
+    FlutterBluePlus.setLogLevel(LogLevel.verbose, color:false);
   runApp(const MyApp());
 }
 
@@ -13,45 +20,141 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
+        
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      //Scaffold sirbe para crear la estructura basica de la app y le damos
+      //extract widget para crear un widget aparte y agregamos const para
+      //optimizar el codigo
+      home: const HomeScreen(),
     );
   }
 }
 
+//convertimos en un statefull widget para manejar estados
+//y asi poder manejar la logica de la app
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({
+    super.key,
+  });
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+
+  //Aqui va la logica de la app
+  //variables, controladores, funciones, etc
+  @override
+  void initState() {
+    
+    super.initState();
+  }
+
+  //funcion que sirve para habilitar el bluetooth
+  //y verificar si el dispositivo soporta bluetooth
+  Future<void> _enableFlutterBle() async {
+    //intancia no modificable que determina por medio de la libreria
+    //si el dispositivo soporta bluetoth
+    final esSoportado = await FlutterBluePlus.isSupported == false;
+    //si el dispositivo no soporta bluetoth
+    if (esSoportado) {
+    log("Bluetooth no soportado por el dispositivo");
+    return;
+    }//en caso de que si soporte bluetoth
+    else{
+      log('Bluetoth si soportado :) ');
+
+       //determina la situacion actual del adaptador
+       final estado = FlutterBluePlus.adapterState.first;
+       log(estado.toString());
+
+        //si el adaptador no esta encendido
+        if (estado != BluetoothAdapterState.on) {
+          log('Bluetooth apagado');
+          return;
+        }
+
+
+      
+       //suscripcion recibe todos los dispositivos en el area 
+       //bluetoth
+              final suscripcion = FlutterBluePlus.onScanResults.listen((resultados) {
+
+                if (resultados.isNotEmpty) {
+                    ScanResult r = resultados.last; // the most recently found device
+                    log('${r.device.remoteId}: "${r.advertisementData.advName}" found!');
+                }
+            },
+            onError: (e) => print(e),
+        );
+
+
+
+
+
+
+
+       //imprime la situacion actual del estado
+
+      /*
+       final subscription = FlutterBluePlus.adapterState.listen((
+        BluetoothAdapterState state,
+        ) {
+          //cambiamos el print por log para que muestre mas info
+          //este log muestra el estado actual de state
+        log(state.toString());
+        if (state == BluetoothAdapterState.on) {
+            // si el adaptador bluetoth esta encendido
+        } else {
+            // en caso de que no mostrar un error al usuario
+        }
+    });
+
+    */
+
+    }
+    
+    
+   
+
+
+
+  }
+
+
+
+
+  @override
+  Widget build(BuildContext context) {
+    //EL return scaffold se usa para crear estructuras en la app
+    //creamos un boton de accion y cuando se precione llamamos a la funcion
+    return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: _enableFlutterBle,
+        ),
+
+
+    );
+    
+  }
+}
+
+
+//Inicio de la la logica inicial de la app por defecto
+/*
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
+ 
 
   final String title;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
+
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
@@ -120,3 +223,4 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+*///Fin de la logica inicial de la app por defecto

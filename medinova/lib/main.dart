@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
@@ -44,6 +45,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
 
+  //lista de resultados de escaneo
+  var _ResultadosScan =   <ScanResult>[];
+
+  //sacando la suscripcion para evitar errores y poder usarla despues
+  StreamSubscription<List<ScanResult>>? _dispositivosSub;
+
+
   //Aqui va la logica de la app
   //variables, controladores, funciones, etc
   @override
@@ -51,6 +59,31 @@ class _HomeScreenState extends State<HomeScreen> {
     
     super.initState();
   }
+
+  //dispose sirve para liberar recursos
+  @override
+  void dispose() {
+    //cerramos la suscripcion
+    _dispositivosSub?.cancel();
+    super.dispose();
+  }
+
+
+
+
+  //funcion para mostrar en pantalla
+  final TextEditingController _logController = TextEditingController();
+
+  void mostrarEnPantalla(String mensaje) {
+    setState(() {
+      _logController.text += "$mensaje\n";
+    });
+    log(mensaje); // sigue mostrando en consola
+  }
+
+
+
+
 
   //funcion que sirve para habilitar el bluetooth
   //y verificar si el dispositivo soporta bluetooth
@@ -82,10 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
        //bluetoth
               final suscripcion = FlutterBluePlus.onScanResults.listen((resultados) {
 
-                if (resultados.isNotEmpty) {
-                    ScanResult r = resultados.last; // the most recently found device
-                    log('${r.device.remoteId}: "${r.advertisementData.advName}" found!');
-                }
+                setState(() =>_ResultadosScan = resultados);
             },
             onError: (e) => print(e),
         );
@@ -124,21 +154,61 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
 
-
-
+  //contruccion del boton
   @override
   Widget build(BuildContext context) {
     //EL return scaffold se usa para crear estructuras en la app
     //creamos un boton de accion y cuando se precione llamamos a la funcion
     return Scaffold(
+      //titulo de ventana
+      appBar: AppBar(
+        title: const Text('Dispositivos'),
+        ) ,
+      //cuerpo de la ventana lista separada
+      body: ListView.separated(
+        //construimos la lista de resultados
+
+        //itemCount es la cantidad de elementos en la lista
+        itemCount: _ResultadosScan.length,
+        itemBuilder: (context, index) {
+          final resultado = _ResultadosScan[index];
+          return ListTile(
+            title: Text(resultado.device.advName),
+            subtitle: Text(resultado.device.platformName),
+            );
+          },
+          separatorBuilder: (context, index) => const Divider(height: 1),
+        ),
       floatingActionButton: FloatingActionButton(
         onPressed: _enableFlutterBle,
+        child: const Icon(Icons.bluetooth),
         ),
 
+        //aqui creamos la barra superior de la app ademas de agregarle un titulo
+        //y centrarlo y
 
+        /*
+          body: Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: TextField(
+        controller: _logController,
+        readOnly: true,
+        maxLines: null,
+        decoration: const InputDecoration(
+          labelText: "Logs",
+          border: OutlineInputBorder(),
+        ),
+      ),
+    ),
+
+    */
     );
     
   }
+
+
+
+
 }
 
 

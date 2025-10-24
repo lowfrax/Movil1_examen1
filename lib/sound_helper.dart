@@ -72,6 +72,36 @@ class SoundHelper {
     }
   }
 
+  static Future<void> pauseBackgroundMusic() async {
+    try {
+      if (_isMusicPlaying) {
+        print('Pausando música de fondo');
+        _musicPosition = await _musicPlayer.getCurrentPosition();
+        await _musicPlayer.pause();
+        print('Música de fondo pausada en posición: $_musicPosition');
+      }
+    } catch (e) {
+      print('Error pausando música de fondo: $e');
+    }
+  }
+
+  static Future<void> resumeBackgroundMusic() async {
+    try {
+      if (_isMusicPlaying && _musicPosition != null) {
+        print('Reanudando música de fondo desde posición: $_musicPosition');
+        await _musicPlayer.seek(_musicPosition!);
+        await _musicPlayer.resume();
+        print('Música de fondo reanudada exitosamente');
+      } else {
+        print(
+          'No se puede reanudar: isMusicPlaying=$_isMusicPlaying, position=$_musicPosition',
+        );
+      }
+    } catch (e) {
+      print('Error reanudando música de fondo: $e');
+    }
+  }
+
   static Future<void> stopBackgroundMusic() async {
     try {
       if (_isMusicPlaying) {

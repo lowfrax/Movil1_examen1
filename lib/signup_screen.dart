@@ -5,6 +5,10 @@ import 'package:medinova/login_screen.dart';
 import 'package:medinova/sound_helper.dart';
 import 'package:medinova/music_control_widget.dart';
 import 'package:medinova/custom_transitions.dart';
+import 'package:medinova/models/role.dart';
+import 'package:medinova/services/role_service.dart';
+import 'package:medinova/widgets/role_dropdown.dart';
+import 'package:medinova/widgets/persona_text_field.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -27,9 +31,30 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _obsecurePassword = true;
   bool _obsecureConfirmPassword = true;
 
+  // Variables para roles
+  List<Role> _roles = [];
+  Role? _selectedRole;
+  bool _loadingRoles = true;
+
   @override
   void initState() {
     super.initState();
+    _loadRoles();
+  }
+
+  Future<void> _loadRoles() async {
+    try {
+      final roles = await RoleService.getRoles();
+      setState(() {
+        _roles = roles;
+        _loadingRoles = false;
+      });
+    } catch (e) {
+      print('Error cargando roles: $e');
+      setState(() {
+        _loadingRoles = false;
+      });
+    }
   }
 
   @override
@@ -58,11 +83,59 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
 
+    if (_selectedRole == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Por favor selecciona un rol'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
 
     try {
+      // Verificar si el email ya existe
+      final emailExists = await RoleService.checkEmailExists(
+        _emailController.text.trim(),
+      );
+      if (emailExists) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Este email ya está registrado'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Verificar si el teléfono ya existe
+      final phoneExists = await RoleService.checkPhoneExists(
+        _phoneController.text.trim(),
+      );
+      if (phoneExists) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Este teléfono ya está registrado'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
       final response = await supabase.auth.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
@@ -73,15 +146,18 @@ class _SignupScreenState extends State<SignupScreen> {
       );
 
       if (mounted) {
-        // Siempre intentamos insertar el perfil en la tabla public.perfil
+        // Insertar el perfil en la tabla public.perfil con el rol seleccionado
         try {
           await supabase.from('perfil').insert({
             'nombre': _nameController.text.trim(),
             'password': _passwordController.text,
             'email': _emailController.text.trim(),
-            'id_rol': 1, // Siempre usuario_app por defecto (entero)
+            'telefono': _phoneController.text.trim(),
+            'id_rol': _selectedRole!.id, // Usar el ID del rol seleccionado
           });
-          print('Perfil insertado en public.perfil');
+          print(
+            'Perfil insertado en public.perfil con rol: ${_selectedRole!.nombreRol}',
+          );
         } catch (e) {
           print('Error insertando en perfil: $e');
           // no interrumpimos el flujo de signup por fallo en insert, pero podrías manejarlo aquí
@@ -201,18 +277,11 @@ class _SignupScreenState extends State<SignupScreen> {
                       key: _formkey,
                       child: Column(
                         children: [
-                          TextFormField(
+                          PersonaTextField(
                             controller: _nameController,
-                            decoration: InputDecoration(
-                              labelText: 'Nombre',
-                              hintText: 'Ingresa tu nombre completo',
-                              prefixIcon: Icon(Icons.person_outlined),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[50],
-                            ),
+                            labelText: 'Nombre',
+                            hintText: 'Ingresa tu nombre completo',
+                            prefixIcon: Icons.person_outlined,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Por favor ingresa tu nombre';
@@ -223,19 +292,12 @@ class _SignupScreenState extends State<SignupScreen> {
 
                           SizedBox(height: 16),
 
-                          TextFormField(
+                          PersonaTextField(
                             controller: _phoneController,
+                            labelText: 'Teléfono',
+                            hintText: 'Ingresa tu número de teléfono',
+                            prefixIcon: Icons.phone_outlined,
                             keyboardType: TextInputType.phone,
-                            decoration: InputDecoration(
-                              labelText: 'Teléfono',
-                              hintText: 'Ingresa tu número de teléfono',
-                              prefixIcon: Icon(Icons.phone_outlined),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[50],
-                            ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Por favor ingresa tu teléfono';
@@ -246,19 +308,69 @@ class _SignupScreenState extends State<SignupScreen> {
 
                           SizedBox(height: 16),
 
-                          TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: InputDecoration(
-                              labelText: 'Correo',
-                              hintText: 'Ingresa tu correo',
-                              prefixIcon: Icon(Icons.email_outlined),
-                              border: OutlineInputBorder(
+                          // Combo box para selección de roles
+                          if (_loadingRoles)
+                            Container(
+                              height: 60,
+                              decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.outline.withOpacity(0.3),
+                                ),
+                                color: Colors.grey[50],
                               ),
-                              filled: true,
-                              fillColor: Colors.grey[50],
+                              child: Center(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                            ),
+                                      ),
+                                    ),
+                                    SizedBox(width: 12),
+                                    Text(
+                                      'Cargando roles...',
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withOpacity(0.7),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          else
+                            RoleDropdown(
+                              selectedRole: _selectedRole,
+                              onChanged: (Role? role) {
+                                setState(() {
+                                  _selectedRole = role;
+                                });
+                              },
+                              roles: _roles,
                             ),
+
+                          SizedBox(height: 16),
+
+                          PersonaTextField(
+                            controller: _emailController,
+                            labelText: 'Correo',
+                            hintText: 'Ingresa tu correo',
+                            prefixIcon: Icons.email_outlined,
+                            keyboardType: TextInputType.emailAddress,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Por favor ingresa tu correo';
@@ -272,75 +384,57 @@ class _SignupScreenState extends State<SignupScreen> {
 
                           SizedBox(height: 16),
 
-                          TextFormField(
+                          PersonaTextField(
                             controller: _passwordController,
+                            labelText: 'Contraseña',
+                            hintText: 'Ingresa tu contraseña',
+                            prefixIcon: Icons.password_outlined,
                             obscureText: _obsecurePassword,
-                            decoration: InputDecoration(
-                              labelText: 'Contraseña',
-                              hintText: 'Ingresa su contraseña',
-                              prefixIcon: Icon(Icons.password_outlined),
-                              suffixIcon: IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _obsecurePassword = !_obsecurePassword;
-                                  });
-                                },
-                                icon: Icon(
-                                  _obsecurePassword
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined,
-                                ),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _obsecurePassword = !_obsecurePassword;
+                                });
+                              },
+                              icon: Icon(
+                                _obsecurePassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
                               ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-
-                              filled: true,
-                              fillColor: Colors.grey[50],
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Por favor ingresa tu contraseña';
                               }
-
                               return null;
                             },
                           ),
 
                           SizedBox(height: 16),
 
-                          TextFormField(
+                          PersonaTextField(
                             controller: _confirmPasswordController,
+                            labelText: 'Confirmación de Contraseña',
+                            hintText: 'Ingresa tu contraseña nuevamente',
+                            prefixIcon: Icons.password_outlined,
                             obscureText: _obsecureConfirmPassword,
-                            decoration: InputDecoration(
-                              labelText: 'confirmacion de Contraseña',
-                              hintText: 'Ingresa su contraseña nuevamente',
-                              prefixIcon: Icon(Icons.password_outlined),
-                              suffixIcon: IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _obsecureConfirmPassword =
-                                        !_obsecureConfirmPassword;
-                                  });
-                                },
-                                icon: Icon(
-                                  _obsecureConfirmPassword
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined,
-                                ),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _obsecureConfirmPassword =
+                                      !_obsecureConfirmPassword;
+                                });
+                              },
+                              icon: Icon(
+                                _obsecureConfirmPassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
                               ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-
-                              filled: true,
-                              fillColor: Colors.grey[50],
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Por favor confirma tu contraseña';
                               }
-
                               return null;
                             },
                           ),
@@ -391,7 +485,8 @@ class _SignupScreenState extends State<SignupScreen> {
                                     context,
                                     CustomPageRoute(
                                       child: LoginScreen(),
-                                      transitionType: 'slideFromLeft',
+                                      transitionType: 'slideDiagonal',
+                                      duration: Duration(milliseconds: 400),
                                     ),
                                   );
                                 },

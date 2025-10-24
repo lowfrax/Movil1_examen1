@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class CustomPageTransitions {
-  // Transición de deslizamiento suave desde la derecha
+  // Transición estilo Persona: Deslizamiento suave con fade elegante
   static Widget slideFromRight(
     BuildContext context,
     Animation<double> animation,
@@ -13,11 +13,17 @@ class CustomPageTransitions {
           .animate(
             CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic),
           ),
-      child: FadeTransition(opacity: animation, child: child),
+      child: FadeTransition(
+        opacity: Tween<double>(
+          begin: 0.0,
+          end: 1.0,
+        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeInOut)),
+        child: child,
+      ),
     );
   }
 
-  // Transición de deslizamiento suave desde la izquierda
+  // Transición estilo Persona: Deslizamiento desde izquierda con fade
   static Widget slideFromLeft(
     BuildContext context,
     Animation<double> animation,
@@ -29,11 +35,17 @@ class CustomPageTransitions {
           .animate(
             CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic),
           ),
-      child: FadeTransition(opacity: animation, child: child),
+      child: FadeTransition(
+        opacity: Tween<double>(
+          begin: 0.0,
+          end: 1.0,
+        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeInOut)),
+        child: child,
+      ),
     );
   }
 
-  // Transición de escala con rotación suave
+  // Transición estilo Persona: Zoom suave con fade elegante
   static Widget scaleWithRotation(
     BuildContext context,
     Animation<double> animation,
@@ -42,20 +54,20 @@ class CustomPageTransitions {
   ) {
     return ScaleTransition(
       scale: Tween<double>(
-        begin: 0.0,
+        begin: 0.9,
         end: 1.0,
-      ).animate(CurvedAnimation(parent: animation, curve: Curves.elasticOut)),
-      child: RotationTransition(
-        turns: Tween<double>(
-          begin: 0.5,
-          end: 0.0,
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+      child: FadeTransition(
+        opacity: Tween<double>(
+          begin: 0.0,
+          end: 1.0,
         ).animate(CurvedAnimation(parent: animation, curve: Curves.easeInOut)),
-        child: FadeTransition(opacity: animation, child: child),
+        child: child,
       ),
     );
   }
 
-  // Transición de deslizamiento desde abajo con bounce
+  // Transición estilo Persona: Deslizamiento desde abajo con fade
   static Widget slideFromBottom(
     BuildContext context,
     Animation<double> animation,
@@ -66,12 +78,18 @@ class CustomPageTransitions {
       position: Tween<Offset>(
         begin: const Offset(0.0, 1.0),
         end: Offset.zero,
-      ).animate(CurvedAnimation(parent: animation, curve: Curves.bounceOut)),
-      child: FadeTransition(opacity: animation, child: child),
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+      child: FadeTransition(
+        opacity: Tween<double>(
+          begin: 0.0,
+          end: 1.0,
+        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeInOut)),
+        child: child,
+      ),
     );
   }
 
-  // Transición de zoom con fade
+  // Transición estilo Persona: Zoom con fade elegante
   static Widget zoomWithFade(
     BuildContext context,
     Animation<double> animation,
@@ -79,10 +97,88 @@ class CustomPageTransitions {
     Widget child,
   ) {
     return ScaleTransition(
-      scale: Tween<double>(begin: 0.8, end: 1.0).animate(
-        CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic),
+      scale: Tween<double>(
+        begin: 0.8,
+        end: 1.0,
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+      child: FadeTransition(
+        opacity: Tween<double>(
+          begin: 0.0,
+          end: 1.0,
+        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeInOut)),
+        child: child,
       ),
-      child: FadeTransition(opacity: animation, child: child),
+    );
+  }
+
+  // Nueva transición estilo Persona: Slide con escala suave
+  static Widget slideWithScale(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return SlideTransition(
+      position: Tween<Offset>(
+        begin: const Offset(0.0, 0.2),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+      child: ScaleTransition(
+        scale: Tween<double>(
+          begin: 0.95,
+          end: 1.0,
+        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+        child: FadeTransition(
+          opacity: Tween<double>(begin: 0.0, end: 1.0).animate(
+            CurvedAnimation(parent: animation, curve: Curves.easeInOut),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  // Nueva transición estilo Persona: Fade con escala mínima
+  static Widget fadeWithScale(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return FadeTransition(
+      opacity: Tween<double>(
+        begin: 0.0,
+        end: 1.0,
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeInOut)),
+      child: ScaleTransition(
+        scale: Tween<double>(
+          begin: 0.98,
+          end: 1.0,
+        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+        child: child,
+      ),
+    );
+  }
+
+  // Nueva transición estilo Persona: Slide diagonal suave
+  static Widget slideDiagonal(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return SlideTransition(
+      position: Tween<Offset>(
+        begin: const Offset(0.3, 0.3),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+      child: FadeTransition(
+        opacity: Tween<double>(
+          begin: 0.0,
+          end: 1.0,
+        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeInOut)),
+        child: child,
+      ),
     );
   }
 }
@@ -143,6 +239,27 @@ class CustomPageRoute<T> extends PageRouteBuilder<T> {
                );
              case 'zoomWithFade':
                return CustomPageTransitions.zoomWithFade(
+                 context,
+                 animation,
+                 secondaryAnimation,
+                 child,
+               );
+             case 'slideWithScale':
+               return CustomPageTransitions.slideWithScale(
+                 context,
+                 animation,
+                 secondaryAnimation,
+                 child,
+               );
+             case 'fadeWithScale':
+               return CustomPageTransitions.fadeWithScale(
+                 context,
+                 animation,
+                 secondaryAnimation,
+                 child,
+               );
+             case 'slideDiagonal':
+               return CustomPageTransitions.slideDiagonal(
                  context,
                  animation,
                  secondaryAnimation,

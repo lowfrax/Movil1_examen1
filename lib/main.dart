@@ -6,6 +6,7 @@ import 'package:medinova/usuario_app_screen.dart';
 import 'package:medinova/usuario_clinica_screen.dart';
 import 'package:medinova/doctor_screen.dart';
 import 'package:medinova/custom_transitions.dart';
+import 'package:medinova/app_lifecycle_manager.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> main() async {
@@ -44,13 +45,15 @@ class MyApp extends StatelessWidget {
           },
         ),
       ),
-      home: SplashScreen(),
+      home: AppLifecycleManager(child: SplashScreen()),
       routes: {
-        '/login': (context) => LoginScreen(),
-        '/signup': (context) => SignupScreen(),
-        '/usuario_app': (context) => UsuarioAppScreen(),
-        '/usuario_clinica': (context) => UsuarioClinicaScreen(),
-        '/doctor': (context) => DoctorScreen(),
+        '/login': (context) => AppLifecycleManager(child: LoginScreen()),
+        '/signup': (context) => AppLifecycleManager(child: SignupScreen()),
+        '/usuario_app': (context) =>
+            AppLifecycleManager(child: UsuarioAppScreen()),
+        '/usuario_clinica': (context) =>
+            AppLifecycleManager(child: UsuarioClinicaScreen()),
+        '/doctor': (context) => AppLifecycleManager(child: DoctorScreen()),
       },
     );
   }

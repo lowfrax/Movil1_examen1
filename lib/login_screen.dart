@@ -307,7 +307,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                     context,
                                     CustomPageRoute(
                                       child: SignupScreen(),
-                                      transitionType: 'slideFromRight',
+                                      transitionType: 'fadeWithScale',
+                                      duration: Duration(milliseconds: 400),
                                     ),
                                   );
                                 },

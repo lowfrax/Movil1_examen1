@@ -4,6 +4,7 @@ import 'package:medinova/home_screen.dart';
 import 'package:medinova/login_screen.dart';
 import 'package:medinova/sound_helper.dart';
 import 'package:medinova/music_control_widget.dart';
+import 'package:medinova/custom_transitions.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -41,7 +42,6 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
-
   Future<void> _signUp() async {
     if (!_formkey.currentState!.validate()) return;
 
@@ -57,7 +57,6 @@ class _SignupScreenState extends State<SignupScreen> {
       );
       return;
     }
-
 
     setState(() {
       _isLoading = true;
@@ -346,7 +345,6 @@ class _SignupScreenState extends State<SignupScreen> {
                             },
                           ),
 
-
                           SizedBox(height: 24),
                           SizedBox(
                             width: double.infinity,
@@ -391,8 +389,9 @@ class _SignupScreenState extends State<SignupScreen> {
                                   await SoundHelper.playSelectSound();
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(
-                                      builder: (context) => LoginScreen(),
+                                    CustomPageRoute(
+                                      child: LoginScreen(),
+                                      transitionType: 'slideFromLeft',
                                     ),
                                   );
                                 },

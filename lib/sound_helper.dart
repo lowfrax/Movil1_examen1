@@ -6,11 +6,16 @@ class SoundHelper {
   static final AudioPlayer _audioPlayer = AudioPlayer();
   static final AudioPlayer _musicPlayer = AudioPlayer();
   static bool _isMusicPlaying = false;
+  static Duration? _musicPosition;
 
   // Helper to load asset bytes reliably regardless of asset path mapping
   static Future<Uint8List> _loadAssetBytes(String path) async {
     // Try several common asset path mappings to be resilient across pubspec layouts
-    final candidates = [path, 'assets/${path.replaceFirst(RegExp(r"^(lib/)?"), "")}','lib/${path.replaceFirst(RegExp(r"^(assets/)?"), "")}'];
+    final candidates = [
+      path,
+      'assets/${path.replaceFirst(RegExp(r"^(lib/)?"), "")}',
+      'lib/${path.replaceFirst(RegExp(r"^(assets/)?"), "")}',
+    ];
     for (final p in candidates) {
       try {
         final data = await rootBundle.load(p);
@@ -29,7 +34,23 @@ class SoundHelper {
     try {
       print('Reproduciendo sonido select.mp3');
       final bytes = await _loadAssetBytes('lib/sounds/select.mp3');
+
+      // Pausar música temporalmente si está reproduciéndose
+      if (_isMusicPlaying) {
+        _musicPosition = await _musicPlayer.getCurrentPosition();
+        await _musicPlayer.pause();
+      }
+
       await _audioPlayer.play(BytesSource(bytes));
+
+      // Escuchar cuando termine el sonido para reanudar la música
+      _audioPlayer.onPlayerComplete.listen((_) async {
+        if (_isMusicPlaying && _musicPosition != null) {
+          await _musicPlayer.seek(_musicPosition!);
+          await _musicPlayer.resume();
+        }
+      });
+
       print('Sonido reproducido exitosamente');
     } catch (e) {
       print('Error reproduciendo sonido: $e');
@@ -55,6 +76,7 @@ class SoundHelper {
     try {
       if (_isMusicPlaying) {
         print('Deteniendo música de fondo');
+        _musicPosition = await _musicPlayer.getCurrentPosition();
         await _musicPlayer.stop();
         _isMusicPlaying = false;
         print('Música de fondo detenida');

@@ -7,6 +7,7 @@ import 'package:medinova/usuario_clinica_screen.dart';
 import 'package:medinova/doctor_screen.dart';
 import 'package:medinova/sound_helper.dart';
 import 'package:medinova/music_control_widget.dart';
+import 'package:medinova/custom_transitions.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -304,8 +305,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   await SoundHelper.playSelectSound();
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(
-                                      builder: (context) => SignupScreen(),
+                                    CustomPageRoute(
+                                      child: SignupScreen(),
+                                      transitionType: 'slideFromRight',
                                     ),
                                   );
                                 },

@@ -1,12 +1,11 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:medinova/splash_screen.dart';
-import 'package:medinova/auth_check.dart';
 import 'package:medinova/login_screen.dart';
 import 'package:medinova/signup_screen.dart';
 import 'package:medinova/usuario_app_screen.dart';
 import 'package:medinova/usuario_clinica_screen.dart';
 import 'package:medinova/doctor_screen.dart';
+import 'package:medinova/custom_transitions.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> main() async {
@@ -35,6 +34,15 @@ class MyApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
         useMaterial3: true,
+        pageTransitionsTheme: PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: CustomPageRouteBuilder(),
+            TargetPlatform.iOS: CustomPageRouteBuilder(),
+            TargetPlatform.windows: CustomPageRouteBuilder(),
+            TargetPlatform.macOS: CustomPageRouteBuilder(),
+            TargetPlatform.linux: CustomPageRouteBuilder(),
+          },
+        ),
       ),
       home: SplashScreen(),
       routes: {

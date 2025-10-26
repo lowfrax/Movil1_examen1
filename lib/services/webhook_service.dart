@@ -15,8 +15,17 @@ class WebhookService {
     required String telefono,
   }) async {
     try {
+      // Validar y convertir parámetros a String
+      final String messageStr = message.toString();
+      final String emailStr = email.toString();
+      final String telefonoStr = telefono.toString();
+
       final url = Uri.parse(_webhookUrl);
-      final body = {'mensaje': message, 'email': email, 'telefono': telefono};
+      final body = {
+        'mensaje': messageStr,
+        'email': emailStr,
+        'telefono': telefonoStr,
+      };
 
       print('Enviando al webhook: $body'); // Debug
 
@@ -35,7 +44,7 @@ class WebhookService {
 
       if (response.statusCode == 200) {
         // Guardar el mensaje en la base de datos
-        await _saveMessageToDatabase(message, email, telefono);
+        await _saveMessageToDatabase(messageStr, emailStr, telefonoStr);
 
         return {
           'success': true,
@@ -106,7 +115,20 @@ class WebhookService {
           .eq('email', user.email ?? '')
           .single();
 
-      return response;
+      // Convertir los campos a String para evitar errores de tipo
+      final Map<String, dynamic> profile = Map<String, dynamic>.from(response);
+
+      // Asegurar que telefono sea String
+      if (profile['telefono'] != null) {
+        profile['telefono'] = profile['telefono'].toString();
+      }
+
+      // Asegurar que email sea String
+      if (profile['email'] != null) {
+        profile['email'] = profile['email'].toString();
+      }
+
+      return profile;
     } catch (e) {
       print('Error al obtener perfil del usuario: $e');
       return null;

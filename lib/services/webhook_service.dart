@@ -1,10 +1,14 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:path/path.dart' as path;
 
 class WebhookService {
   static const String _webhookUrl =
       'https://ideally-wordy-elene.ngrok-free.dev/webhook/b3780e3c-eabc-44ff-9f4d-9ce075f27ba5';
+  static const String _fileWebhookUrl =
+      'https://ideally-wordy-elene.ngrok-free.dev/webhook/91e80b8b-4d98-452d-ab63-99f60fa84a6a';
 
   final SupabaseClient _supabase = Supabase.instance.client;
 
@@ -65,6 +69,74 @@ class WebhookService {
     }
   }
 
+  /// Sube un archivo al webhook de n8n
+  Future<Map<String, dynamic>> uploadFile({
+    required File file,
+    required String email,
+    required String telefono,
+  }) async {
+    try {
+      final url = Uri.parse(_fileWebhookUrl);
+
+      // Validar tipo de archivo
+      final fileName = path.basename(file.path);
+      final fileExtension = path.extension(fileName).toLowerCase();
+
+      if (!['.pdf', '.doc', '.docx'].contains(fileExtension)) {
+        return {
+          'success': false,
+          'error': 'Solo se permiten archivos PDF y Word (.pdf, .doc, .docx)',
+        };
+      }
+
+      // Leer el archivo como bytes
+      final fileBytes = await file.readAsBytes();
+
+      // Crear la solicitud multipart
+      final request = http.MultipartRequest('POST', url);
+
+      // Agregar headers
+      request.headers.addAll({'ngrok-skip-browser-warning': 'true'});
+
+      // Agregar campos
+      request.fields['email'] = email.toString();
+      request.fields['telefono'] = telefono.toString();
+
+      // Agregar el archivo
+      request.files.add(
+        http.MultipartFile.fromBytes('file', fileBytes, filename: fileName),
+      );
+
+      print('Subiendo archivo al webhook: $fileName'); // Debug
+
+      // Enviar la solicitud
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      print(
+        'Respuesta del webhook de archivos: ${response.statusCode} - ${response.body}',
+      ); // Debug
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'statusCode': response.statusCode,
+          'response': response.body,
+        };
+      } else {
+        return {
+          'success': false,
+          'statusCode': response.statusCode,
+          'response': response.body,
+          'error': 'Error en el servidor',
+        };
+      }
+    } catch (e) {
+      print('Error en uploadFile: $e'); // Debug
+      return {'success': false, 'error': 'Error de conexión: $e'};
+    }
+  }
+
   /// Guarda el mensaje en la base de datos
   Future<void> _saveMessageToDatabase(
     String message,
@@ -90,11 +162,16 @@ class WebhookService {
   Future<List<Map<String, dynamic>>> getChatHistory(String telefono) async {
     try {
       // Buscar todos los mensajes que coincidan con el teléfono del usuario
+      // El session_id debe contener el teléfono del usuario
       final response = await _supabase
           .from('n8n_chat_histories')
           .select('*')
-          .like('session_id', 'session_${telefono}_%')
+          .like('session_id', '%${telefono}%')
           .order('created_at', ascending: false);
+
+      print(
+        'Historial encontrado para teléfono $telefono: ${response.length} mensajes',
+      ); // Debug
 
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {

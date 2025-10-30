@@ -31,6 +31,10 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _obsecurePassword = true;
   bool _obsecureConfirmPassword = true;
 
+  // Variables para código de país
+  String _selectedCountryCode = '+504';
+  final List<String> _countryCodes = ['+504', '+1', '+52', '+57', '+51', '+56'];
+
   // Variables para roles
   List<Role> _roles = [];
   Role? _selectedRole;
@@ -117,10 +121,13 @@ class _SignupScreenState extends State<SignupScreen> {
         return;
       }
 
+      // Concatenar código de país con el número de teléfono
+      final fullPhoneNumber =
+          _selectedCountryCode.replaceAll('+', '') +
+          _phoneController.text.trim();
+
       // Verificar si el teléfono ya existe
-      final phoneExists = await RoleService.checkPhoneExists(
-        _phoneController.text.trim(),
-      );
+      final phoneExists = await RoleService.checkPhoneExists(fullPhoneNumber);
       if (phoneExists) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -141,7 +148,7 @@ class _SignupScreenState extends State<SignupScreen> {
         password: _passwordController.text,
         data: {
           'display_name': _nameController.text.trim(),
-          'phone': _phoneController.text.trim(),
+          'phone': fullPhoneNumber,
         },
       );
 
@@ -152,7 +159,7 @@ class _SignupScreenState extends State<SignupScreen> {
             'nombre': _nameController.text.trim(),
             'password': _passwordController.text,
             'email': _emailController.text.trim(),
-            'telefono': _phoneController.text.trim(),
+            'telefono': fullPhoneNumber,
             'id_rol': _selectedRole!.id, // Usar el ID del rol seleccionado
           });
           print(
@@ -292,18 +299,58 @@ class _SignupScreenState extends State<SignupScreen> {
 
                           SizedBox(height: 16),
 
-                          PersonaTextField(
-                            controller: _phoneController,
-                            labelText: 'Teléfono',
-                            hintText: 'Ingresa tu número de teléfono',
-                            prefixIcon: Icons.phone_outlined,
-                            keyboardType: TextInputType.phone,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Por favor ingresa tu teléfono';
-                              }
-                              return null;
-                            },
+                          // Campo de teléfono con código de país
+                          Row(
+                            children: [
+                              // Selector de código de país
+                              Container(
+                                width: 100,
+                                child: DropdownButtonFormField<String>(
+                                  value: _selectedCountryCode,
+                                  decoration: InputDecoration(
+                                    labelText: 'Código',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 16,
+                                    ),
+                                  ),
+                                  items: _countryCodes.map((String code) {
+                                    return DropdownMenuItem<String>(
+                                      value: code,
+                                      child: Text(
+                                        code,
+                                        style: TextStyle(fontSize: 14),
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (String? newValue) {
+                                    setState(() {
+                                      _selectedCountryCode = newValue!;
+                                    });
+                                  },
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              // Campo de número de teléfono
+                              Expanded(
+                                child: PersonaTextField(
+                                  controller: _phoneController,
+                                  labelText: 'Teléfono',
+                                  hintText: '88578125',
+                                  prefixIcon: Icons.phone_outlined,
+                                  keyboardType: TextInputType.phone,
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Por favor ingresa tu teléfono';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
 
                           SizedBox(height: 16),

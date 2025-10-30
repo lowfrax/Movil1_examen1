@@ -3,6 +3,8 @@ import 'package:medinova/sound_helper.dart';
 import 'package:medinova/music_control_widget.dart';
 import 'package:medinova/services/webhook_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
 
 class UsuarioAppScreen extends StatefulWidget {
   const UsuarioAppScreen({super.key});
@@ -20,6 +22,11 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
   Map<String, dynamic>? _userProfile;
   List<Map<String, dynamic>> _chatHistory = [];
   bool _showHistory = false;
+
+  // Variables para subida de archivos
+  File? _selectedFile;
+  bool _isUploadingFile = false;
+  String _fileResponse = '';
 
   @override
   void initState() {
@@ -81,6 +88,66 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
       setState(() {
         _response = 'Error: $e';
         _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _selectFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx'],
+      );
+
+      if (result != null) {
+        setState(() {
+          _selectedFile = File(result.files.single.path!);
+          _fileResponse = '';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _fileResponse = 'Error al seleccionar archivo: $e';
+      });
+    }
+  }
+
+  Future<void> _uploadFile() async {
+    if (_selectedFile == null) {
+      setState(() {
+        _fileResponse = 'Por favor selecciona un archivo primero';
+      });
+      return;
+    }
+
+    setState(() {
+      _isUploadingFile = true;
+      _fileResponse = '';
+    });
+
+    try {
+      final result = await _webhookService.uploadFile(
+        file: _selectedFile!,
+        email: _userProfile?['email'] ?? '',
+        telefono: _userProfile?['telefono'] ?? '',
+      );
+
+      setState(() {
+        _fileResponse = result['success']
+            ? 'Archivo subido exitosamente!\nRespuesta: ${result['response']}'
+            : 'Error: ${result['error'] ?? result['response']}';
+        _isUploadingFile = false;
+      });
+
+      if (result['success']) {
+        setState(() {
+          _selectedFile = null;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _fileResponse = 'Error: $e';
+        _isUploadingFile = false;
       });
     }
   }
@@ -248,6 +315,162 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
                             _response,
                             style: TextStyle(
                               color: _response.contains('Error')
+                                  ? Colors.red[700]
+                                  : Colors.green[700],
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 24),
+
+                // Sección de Subida de Archivos
+                Container(
+                  padding: EdgeInsets.all(24),
+                  margin: EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 20,
+                        offset: Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.upload_file,
+                            color: Colors.green,
+                            size: 24,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Subir Archivos',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'Selecciona un archivo PDF o Word para enviar:',
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                      ),
+                      SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _selectFile,
+                              icon: Icon(Icons.folder_open),
+                              label: Text('Seleccionar Archivo'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _isUploadingFile ? null : _uploadFile,
+                              icon: _isUploadingFile
+                                  ? SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
+                                      ),
+                                    )
+                                  : Icon(Icons.upload),
+                              label: Text(
+                                _isUploadingFile ? 'Subiendo...' : 'Subir',
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_selectedFile != null) ...[
+                        SizedBox(height: 12),
+                        Container(
+                          padding: EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.blue[200]!),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.description, color: Colors.blue),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _selectedFile!.path.split('/').last,
+                                  style: TextStyle(fontSize: 14),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _selectedFile = null;
+                                    _fileResponse = '';
+                                  });
+                                },
+                                icon: Icon(Icons.close, color: Colors.red),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      if (_fileResponse.isNotEmpty) ...[
+                        SizedBox(height: 16),
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: _fileResponse.contains('Error')
+                                ? Colors.red.withOpacity(0.1)
+                                : Colors.green.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: _fileResponse.contains('Error')
+                                  ? Colors.red.withOpacity(0.3)
+                                  : Colors.green.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Text(
+                            _fileResponse,
+                            style: TextStyle(
+                              color: _fileResponse.contains('Error')
                                   ? Colors.red[700]
                                   : Colors.green[700],
                               fontSize: 14,

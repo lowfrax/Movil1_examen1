@@ -12,6 +12,7 @@ import 'models/caso.dart';
 import 'models/perfil.dart';
 // import 'models/medicamento.dart';
 import 'services/supabase_data_service.dart';
+import 'user_case_detail_screen.dart';
 
 class UsuarioAppScreen extends StatefulWidget {
   const UsuarioAppScreen({super.key});
@@ -214,9 +215,10 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
 
   Widget _buildCasoCard(Caso caso) {
     return GestureDetector(
-      onTap: () async {
-        setState(() => _selectedCasoId = caso.id);
-        await _loadChatGeneral();
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => UserCaseDetailScreen(idCaso: caso.id)),
+        );
       },
       onLongPress: () async {
         await showModalBottomSheet(

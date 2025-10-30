@@ -38,6 +38,11 @@ class _UsuarioClinicaScreenState extends State<UsuarioClinicaScreen> {
   List<Caso> _casos = [];
   int? _selectedCasoId;
   String _searchCaso = '';
+  bool _isLoadingCasos = false;
+  int get _countTotal => _casos.length;
+  int get _countPendientes => _casos.where((c) => c.estadoCaso.toLowerCase() == 'pendiente').length;
+  int get _countAnalizando => _casos.where((c) => c.estadoCaso.toLowerCase() == 'analizando').length;
+  int get _countFinalizados => _casos.where((c) => c.estadoCaso.toLowerCase() == 'finalizado').length;
 
   @override
   void initState() {
@@ -76,6 +81,7 @@ class _UsuarioClinicaScreenState extends State<UsuarioClinicaScreen> {
   }
 
   Future<void> _loadCasos() async {
+    setState(() => _isLoadingCasos = true);
     final perfil = await _dataService.getCurrentPerfil();
     if (perfil == null) return;
     final casos = await _dataService.listarCasosPorUsuario(perfil.id, filtroNombre: _searchCaso);
@@ -84,8 +90,85 @@ class _UsuarioClinicaScreenState extends State<UsuarioClinicaScreen> {
       if (_selectedCasoId != null && !_casos.any((c) => c.id == _selectedCasoId)) {
         _selectedCasoId = null;
       }
+      _isLoadingCasos = false;
     });
     await _loadChatGeneral();
+  }
+
+  Color _statusBorder(String estado) {
+    switch (estado.toLowerCase()) {
+      case 'finalizado':
+        return Colors.green.shade400;
+      case 'analizando':
+        return Colors.blue.shade400;
+      case 'pendiente':
+      default:
+        return Colors.orange.shade400;
+    }
+  }
+
+  Color _statusFill(String estado) => _statusBorder(estado).withOpacity(0.12);
+
+  Widget _resumeTile({required String title, required int count, required Color color}) {
+    return Container(
+      width: 140,
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        border: Border.all(color: color.withOpacity(0.35)),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('$count', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
+          const SizedBox(height: 6),
+          Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: color))
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCasoCard(Caso caso) {
+    return GestureDetector(
+      onTap: () async {
+        setState(() => _selectedCasoId = caso.id);
+        await _loadChatGeneral();
+      },
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: _statusFill(caso.estadoCaso),
+          border: Border.all(color: _statusBorder(caso.estadoCaso).withOpacity(0.35)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: _statusBorder(caso.estadoCaso).withOpacity(0.1),
+                border: Border.all(color: _statusBorder(caso.estadoCaso)),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                caso.estadoCaso.toUpperCase(),
+                style: TextStyle(color: _statusBorder(caso.estadoCaso), fontWeight: FontWeight.bold, fontSize: 11),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(caso.nombreCaso, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                Text('ID #${caso.id} • Doctor: ${caso.idDoctor}', style: TextStyle(color: Colors.grey[700], fontSize: 12)),
+              ]),
+            ),
+            if (_selectedCasoId == caso.id) Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _sendMessage() async {
@@ -278,6 +361,23 @@ class _UsuarioClinicaScreenState extends State<UsuarioClinicaScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Center(child: Text('Resumen de Casos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+                    const SizedBox(height: 12),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _resumeTile(title: 'Casos\nTotales', count: _countTotal, color: Colors.green),
+                          const SizedBox(width: 8),
+                          _resumeTile(title: 'Pendientes', count: _countPendientes, color: Colors.orange),
+                          const SizedBox(width: 8),
+                          _resumeTile(title: 'En Proceso', count: _countAnalizando, color: Colors.blue),
+                          const SizedBox(width: 8),
+                          _resumeTile(title: 'Finalizados', count: _countFinalizados, color: Colors.green),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
                         Expanded(
@@ -309,6 +409,24 @@ class _UsuarioClinicaScreenState extends State<UsuarioClinicaScreen> {
                         await _loadCasos();
                       },
                     ),
+                      const SizedBox(height: 12),
+                      if (_isLoadingCasos)
+                        const Center(child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator()))
+                      else ...[
+                        for (final c in _casos) ...[
+                          const SizedBox(height: 8),
+                          _buildCasoCard(c),
+                        ],
+                        if (_casos.isEmpty)
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text('No hay casos disponibles.'),
+                          ),
+                      ],
                   ],
                 ),
               ),

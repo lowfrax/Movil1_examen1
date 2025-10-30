@@ -3,6 +3,9 @@ import 'package:medinova/sound_helper.dart';
 import 'package:medinova/music_control_widget.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:medinova/p3_theme.dart';
+import 'models/caso.dart';
+import 'services/supabase_data_service.dart';
+import 'doctor_case_detail.dart';
 
 class DoctorScreen extends StatefulWidget {
   const DoctorScreen({super.key});
@@ -13,6 +16,11 @@ class DoctorScreen extends StatefulWidget {
 
 class _DoctorScreenState extends State<DoctorScreen> {
   final supabase = Supabase.instance.client;
+  final SupabaseDataService _data = SupabaseDataService();
+  List<Caso> _casos = [];
+  String _estado = 'pendiente';
+  bool _loading = true;
+  int? _doctorId;
 
   Future<void> _signOut() async {
     await SoundHelper.playSelectSound();
@@ -23,111 +31,113 @@ class _DoctorScreenState extends State<DoctorScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    final perfil = await _data.getCurrentPerfil();
+    _doctorId = perfil?.id;
+    if (_doctorId != null) {
+      final rows = await Supabase.instance.client
+          .from('casos')
+          .select('*')
+          .eq('id_doctor', _doctorId!)
+          .neq('deleted', 1);
+      final list = (rows as List).map((e) => Caso.fromMap(Map<String, dynamic>.from(e))).toList();
+      _applyFilter(list);
+    }
+    setState(() => _loading = false);
+  }
+
+  void _applyFilter(List<Caso> all) {
+    final filtered = all.where((c) => c.estadoCaso.toLowerCase() == _estado).toList();
+    filtered.sort((a, b) => (a.createdAt ?? DateTime(1970)).compareTo(b.createdAt ?? DateTime(1970)));
+    setState(() => _casos = filtered);
+  }
+
+  Future<void> _updateEstado(Caso caso) async {
+    final estados = ['pendiente', 'analizando', 'finalizado'];
+    String sel = caso.estadoCaso;
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Actualizar estado'),
+        content: DropdownButtonFormField<String>(
+          value: sel,
+          items: estados.map((e) => DropdownMenuItem(value: e, child: Text(e.toUpperCase()))).toList(),
+          onChanged: (v) => sel = v ?? sel,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () async {
+              await _data.actualizarEstadoCaso(idCaso: caso.id, estado: sel);
+              Navigator.pop(ctx);
+              await _load();
+            },
+            child: const Text('Guardar'),
+          )
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Doctor'),
+        title: const Text('Casos del Doctor'),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
-        actions: [IconButton(onPressed: _signOut, icon: Icon(Icons.logout))],
+        actions: [IconButton(onPressed: _signOut, icon: const Icon(Icons.logout))],
       ),
-      body: Stack(
-        children: [
-          Container(decoration: p3BackgroundGradient()),
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.medical_services, size: 100, color: Colors.white),
-                SizedBox(height: 32),
-                Text(
-                  'Bienvenido Doctor',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+      body: Stack(children: [
+        Container(decoration: p3BackgroundGradient()),
+        Column(children: [
+          const SizedBox(height: 12),
+          Wrap(spacing: 8, children: [
+            ChoiceChip(label: const Text('Pendientes'), selected: _estado == 'pendiente', onSelected: (s) { setState(() => _estado = 'pendiente'); _load(); }),
+            ChoiceChip(label: const Text('Analizando'), selected: _estado == 'analizando', onSelected: (s) { setState(() => _estado = 'analizando'); _load(); }),
+            ChoiceChip(label: const Text('Finalizados'), selected: _estado == 'finalizado', onSelected: (s) { setState(() => _estado = 'finalizado'); _load(); }),
+          ]),
+          const SizedBox(height: 8),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.separated(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: _casos.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (ctx, i) {
+                      final c = _casos[i];
+                      return GestureDetector(
+                        onLongPress: () => _updateEstado(c),
+                        onTap: () {
+                          if (_doctorId != null) {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => DoctorCaseDetail(idCaso: c.id, idDoctor: _doctorId!),
+                              ),
+                            );
+                          }
+                        },
+                        child: ListTile(
+                          tileColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          title: Text(c.nombreCaso),
+                          subtitle: Text('#${c.id} • ${c.estadoCaso}'),
+                          trailing: const Icon(Icons.chevron_right),
+                        ),
+                      );
+                    },
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Has iniciado sesión como Doctor',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white.withOpacity(0.8),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 48),
-                Container(
-                  padding: EdgeInsets.all(24),
-                  margin: EdgeInsets.symmetric(horizontal: 32),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 20,
-                        offset: Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Funcionalidades disponibles:',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      ListTile(
-                        leading: Icon(
-                          Icons.calendar_today,
-                          color: Theme.of(context).colorScheme.secondary,
-                        ),
-                        title: Text('Ver agenda de citas'),
-                      ),
-                      ListTile(
-                        leading: Icon(
-                          Icons.person_add,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        title: Text('Atender pacientes'),
-                      ),
-                      ListTile(
-                        leading: Icon(
-                          Icons.description,
-                          color: Theme.of(context).colorScheme.secondary,
-                        ),
-                        title: Text('Escribir recetas médicas'),
-                      ),
-                      ListTile(
-                        leading: Icon(
-                          Icons.analytics,
-                          color: Theme.of(context).colorScheme.tertiary,
-                        ),
-                        title: Text('Diagnósticos médicos'),
-                      ),
-                      ListTile(
-                        leading: Icon(
-                          Icons.history,
-                          color: Theme.of(context).colorScheme.secondary,
-                        ),
-                        title: Text('Historial de pacientes'),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
           ),
-          const MusicControlWidget(),
-        ],
-      ),
+        ]),
+        const MusicControlWidget(),
+      ]),
     );
   }
 }

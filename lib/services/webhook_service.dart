@@ -17,6 +17,7 @@ class WebhookService {
     required String message,
     required String email,
     required String telefono,
+    int? idCaso,
   }) async {
     try {
       // Validar y convertir parámetros a String
@@ -29,6 +30,7 @@ class WebhookService {
         'mensaje': messageStr,
         'email': emailStr,
         'telefono': telefonoStr,
+        if (idCaso != null) 'id_caso': idCaso,
       };
 
       print('Enviando al webhook: $body'); // Debug
@@ -71,6 +73,7 @@ class WebhookService {
     required File file,
     required String email,
     required String telefono,
+    int? idCaso,
   }) async {
     try {
       final url = Uri.parse(_fileWebhookUrl);
@@ -98,6 +101,7 @@ class WebhookService {
       // Agregar campos
       request.fields['email'] = email.toString();
       request.fields['telefono'] = telefono.toString();
+      if (idCaso != null) request.fields['id_caso'] = idCaso.toString();
 
       // Agregar el archivo
       request.files.add(
@@ -136,42 +140,40 @@ class WebhookService {
 
   // Eliminado: no insertamos mensajes manualmente en la tabla de n8n
 
-  /// Inserta un mensaje del usuario en public.chat_general
+  /// Inserta un mensaje del usuario en public.chat_general (por id_caso)
   Future<void> insertChatGeneralUser({
     required String message,
-    required String telefono,
+    required int idCaso,
   }) async {
     await _supabase.from('chat_general').insert({
-      'session_id': telefono,
+      'id_caso': idCaso,
       'message': message,
       'type': 'user',
-      'reference': null,
       // created_at es autogenerado
     });
   }
 
-  /// Inserta un mensaje de la IA en public.chat_general
+  /// Inserta un mensaje de la IA en public.chat_general (por id_caso)
   Future<void> insertChatGeneralIA({
     required String message,
-    required String telefono,
+    required int idCaso,
   }) async {
     await _supabase.from('chat_general').insert({
-      'session_id': telefono,
+      'id_caso': idCaso,
       'message': message,
       'type': 'IA',
-      'reference': null,
       // created_at es autogenerado
     });
   }
 
-  /// Trae historial de chat_general de un usuario por session_id o reference, ordenado por created_at desc
-  Future<List<Map<String, dynamic>>> getChatGeneral(String telefono) async {
+  /// Trae historial de chat_general por id_caso
+  Future<List<Map<String, dynamic>>> getChatGeneralByCaso(int idCaso) async {
     try {
       final response = await _supabase
           .from('chat_general')
-          .select('id, session_id, message, type, created_at, reference')
-          .or('session_id.eq.$telefono,reference.eq.$telefono')
-          .order('created_at', ascending: false);
+          .select('id, id_caso, message, type, created_at')
+          .eq('id_caso', idCaso)
+          .order('created_at', ascending: true);
 
       return List<Map<String, dynamic>>.from(response as List);
     } catch (e) {

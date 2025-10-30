@@ -8,6 +8,10 @@ import 'dart:io';
 import 'package:medinova/p3_theme.dart';
 import 'package:medinova/widgets/p3_pattern.dart';
 import 'dart:convert';
+import 'models/caso.dart';
+// import 'models/perfil.dart';
+// import 'models/medicamento.dart';
+import 'services/supabase_data_service.dart';
 
 class UsuarioClinicaScreen extends StatefulWidget {
   const UsuarioClinicaScreen({super.key});
@@ -19,6 +23,7 @@ class UsuarioClinicaScreen extends StatefulWidget {
 class _UsuarioClinicaScreenState extends State<UsuarioClinicaScreen> {
   final supabase = Supabase.instance.client;
   final WebhookService _webhookService = WebhookService();
+  final SupabaseDataService _dataService = SupabaseDataService();
   final TextEditingController _messageController = TextEditingController();
   String _response = '';
   bool _isLoading = false;
@@ -30,6 +35,9 @@ class _UsuarioClinicaScreenState extends State<UsuarioClinicaScreen> {
   String _fileResponse = '';
   List<Map<String, dynamic>> _chatGeneral = [];
   bool _showChatGeneral = false;
+  List<Caso> _casos = [];
+  int? _selectedCasoId;
+  String _searchCaso = '';
 
   @override
   void initState() {
@@ -42,12 +50,7 @@ class _UsuarioClinicaScreenState extends State<UsuarioClinicaScreen> {
     setState(() {
       _userProfile = profile;
     });
-
-    // Cargar historial de chat si tenemos el teléfono
-    if (profile != null && profile['telefono'] != null) {
-      await _loadChatHistory();
-      await _loadChatGeneral();
-    }
+    await _loadCasos();
   }
 
   Future<void> _loadChatHistory() async {
@@ -62,18 +65,37 @@ class _UsuarioClinicaScreenState extends State<UsuarioClinicaScreen> {
   }
 
   Future<void> _loadChatGeneral() async {
-    if (_userProfile?['telefono'] != null) {
-      final general = await _webhookService.getChatGeneral(
-        _userProfile!['telefono'],
-      );
+    if (_selectedCasoId != null) {
+      final general = await _dataService.getChatGeneralByCaso(_selectedCasoId!);
       setState(() {
         _chatGeneral = general;
       });
+    } else {
+      setState(() => _chatGeneral = []);
     }
+  }
+
+  Future<void> _loadCasos() async {
+    final perfil = await _dataService.getCurrentPerfil();
+    if (perfil == null) return;
+    final casos = await _dataService.listarCasosPorUsuario(perfil.id, filtroNombre: _searchCaso);
+    setState(() {
+      _casos = casos;
+      if (_selectedCasoId != null && !_casos.any((c) => c.id == _selectedCasoId)) {
+        _selectedCasoId = null;
+      }
+    });
+    await _loadChatGeneral();
   }
 
   Future<void> _sendMessage() async {
     if (_messageController.text.trim().isEmpty) return;
+    if (_selectedCasoId == null) {
+      setState(() {
+        _response = 'Seleccione o cree un caso para continuar.';
+      });
+      return;
+    }
     setState(() {
       _isLoading = true;
       _response = '';
@@ -83,12 +105,13 @@ class _UsuarioClinicaScreenState extends State<UsuarioClinicaScreen> {
     try {
       await _webhookService.insertChatGeneralUser(
         message: userMessage,
-        telefono: telefono,
+        idCaso: _selectedCasoId!,
       );
       final result = await _webhookService.sendMessage(
         message: userMessage,
         email: _userProfile?['email'] ?? '',
         telefono: telefono,
+        idCaso: _selectedCasoId,
       );
       setState(() {
         _response = result['success']
@@ -103,17 +126,16 @@ class _UsuarioClinicaScreenState extends State<UsuarioClinicaScreen> {
         try {
           final decoded = json.decode(iaResponseBody);
           iaText = decoded['ia_response'] ?? decoded['response'] ?? '';
-          if (iaText.isEmpty && decoded is Map) iaText = decoded['message']?.toString() ?? '';
+          if (iaText.isEmpty && decoded is Map) iaText = (decoded['message'] ?? '').toString();
         } catch (_) {
           iaText = iaResponseBody.toString();
         }
         if (iaText.trim().isNotEmpty) {
           await _webhookService.insertChatGeneralIA(
             message: iaText,
-            telefono: telefono,
+            idCaso: _selectedCasoId!,
           );
         }
-        await _loadChatHistory();
         await _loadChatGeneral();
       }
     } catch (e) {
@@ -169,6 +191,12 @@ class _UsuarioClinicaScreenState extends State<UsuarioClinicaScreen> {
       });
       return;
     }
+    if (_selectedCasoId == null) {
+      setState(() {
+        _fileResponse = 'Seleccione o cree un caso antes de subir archivos';
+      });
+      return;
+    }
 
     setState(() {
       _isUploadingFile = true;
@@ -180,6 +208,7 @@ class _UsuarioClinicaScreenState extends State<UsuarioClinicaScreen> {
         file: _selectedFile!,
         email: _userProfile?['email'] ?? '',
         telefono: _userProfile?['telefono'] ?? '',
+        idCaso: _selectedCasoId,
       );
 
       setState(() {
@@ -240,6 +269,49 @@ class _UsuarioClinicaScreenState extends State<UsuarioClinicaScreen> {
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 32),
+
+              // Sección de Casos: selector + nuevo + buscador
+              Container(
+                padding: EdgeInsets.all(16),
+                margin: EdgeInsets.symmetric(horizontal: 16),
+                decoration: p3PanelDecoration(context),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<int>(
+                            value: _selectedCasoId,
+                            hint: const Text('Seleccionar caso'),
+                            items: _casos
+                                .map((c) => DropdownMenuItem<int>(
+                                      value: c.id,
+                                      child: Text(c.nombreCaso),
+                                    ))
+                                .toList(),
+                            onChanged: (v) async {
+                              setState(() => _selectedCasoId = v);
+                              await _loadChatGeneral();
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      decoration: const InputDecoration(
+                        labelText: 'Buscar caso...',
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                      onChanged: (v) async {
+                        _searchCaso = v;
+                        await _loadCasos();
+                      },
+                    ),
+                  ],
+                ),
+              ),
 
                 // Sección de Chat con n8n
                 Container(
@@ -791,7 +863,7 @@ class _UsuarioClinicaScreenState extends State<UsuarioClinicaScreen> {
                                   itemBuilder: (context, idx) {
                                     final m = _chatGeneral[idx];
                                     final isAI =
-                                        (m['type']?.toString()?.toLowerCase() ==
+                                        (m['type']?.toString().toLowerCase() ==
                                         'ia');
                                     return Container(
                                       margin: EdgeInsets.only(bottom: 8),
@@ -831,7 +903,7 @@ class _UsuarioClinicaScreenState extends State<UsuarioClinicaScreen> {
                                           ),
                                           SizedBox(height: 4),
                                           Text(
-                                            m['message']?.toString() ?? '',
+                                            (m['message'] ?? '').toString(),
                                             style: TextStyle(fontSize: 14),
                                           ),
                                           if ((m['created_at'] ?? '')

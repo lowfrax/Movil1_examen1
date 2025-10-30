@@ -8,6 +8,10 @@ import 'package:medinova/widgets/p3_pattern.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'dart:convert';
+import 'models/caso.dart';
+import 'models/perfil.dart';
+// import 'models/medicamento.dart';
+import 'services/supabase_data_service.dart';
 
 class UsuarioAppScreen extends StatefulWidget {
   const UsuarioAppScreen({super.key});
@@ -19,6 +23,7 @@ class UsuarioAppScreen extends StatefulWidget {
 class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
   final supabase = Supabase.instance.client;
   final WebhookService _webhookService = WebhookService();
+  final SupabaseDataService _dataService = SupabaseDataService();
   final TextEditingController _messageController = TextEditingController();
   String _response = '';
   bool _isLoading = false;
@@ -34,6 +39,11 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
   List<Map<String, dynamic>> _chatGeneral = [];
   bool _showChatGeneral = false;
 
+  // Casos y selección
+  List<Caso> _casos = [];
+  int? _selectedCasoId;
+  String _searchCaso = '';
+
   @override
   void initState() {
     super.initState();
@@ -46,9 +56,8 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
       _userProfile = profile;
     });
 
-    // Cargar historial de chat si tenemos el teléfono
-    if (profile != null && profile['telefono'] != null) {
-      await _loadChatHistory();
+    if (profile != null) {
+      await _loadCasos();
     }
   }
 
@@ -64,18 +73,39 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
   }
 
   Future<void> _loadChatGeneral() async {
-    if (_userProfile?['telefono'] != null) {
-      final general = await _webhookService.getChatGeneral(
-        _userProfile!['telefono'],
-      );
+    if (_selectedCasoId != null) {
+      final general = await _dataService.getChatGeneralByCaso(_selectedCasoId!);
       setState(() {
         _chatGeneral = general;
+      });
+    } else {
+      setState(() {
+        _chatGeneral = [];
       });
     }
   }
 
+  Future<void> _loadCasos() async {
+    final perfil = await _dataService.getCurrentPerfil();
+    if (perfil == null) return;
+    final casos = await _dataService.listarCasosPorUsuario(perfil.id, filtroNombre: _searchCaso);
+    setState(() {
+      _casos = casos;
+      if (_selectedCasoId != null && !_casos.any((c) => c.id == _selectedCasoId)) {
+        _selectedCasoId = null;
+      }
+    });
+    await _loadChatGeneral();
+  }
+
   Future<void> _sendMessage() async {
     if (_messageController.text.trim().isEmpty) return;
+    if (_selectedCasoId == null) {
+      setState(() {
+        _response = 'Seleccione o cree un caso para continuar.';
+      });
+      return;
+    }
     setState(() {
       _isLoading = true;
       _response = '';
@@ -84,16 +114,17 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
     final userMessage = _messageController.text;
     final telefono = _userProfile?['telefono'] ?? '';
     try {
-      // Guardar mensaje enviado (user)
+      // Guardar mensaje enviado (user) en chat_general por id_caso
       await _webhookService.insertChatGeneralUser(
         message: userMessage,
-        telefono: telefono,
+        idCaso: _selectedCasoId!,
       );
 
       final result = await _webhookService.sendMessage(
         message: userMessage,
         email: _userProfile?['email'] ?? '',
         telefono: telefono,
+        idCaso: _selectedCasoId,
       );
       setState(() {
         _response = result['success']
@@ -111,19 +142,18 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
         try {
           final decoded = json.decode(iaResponseBody);
           iaText = decoded['ia_response'] ?? decoded['response'] ?? '';
-          if (iaText.isEmpty && decoded is Map) iaText = decoded['message']?.toString() ?? '';
+          if (iaText.isEmpty && decoded is Map) iaText = (decoded['message'] ?? '').toString();
         } catch (_) {
           iaText = iaResponseBody.toString();
         }
         if (iaText.trim().isNotEmpty) {
           await _webhookService.insertChatGeneralIA(
             message: iaText,
-            telefono: telefono,
+            idCaso: _selectedCasoId!,
           );
         }
 
         // Recargar historiales
-        await _loadChatHistory();
         await _loadChatGeneral();
       }
     } catch (e) {
@@ -161,6 +191,12 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
       });
       return;
     }
+    if (_selectedCasoId == null) {
+      setState(() {
+        _fileResponse = 'Seleccione o cree un caso antes de subir archivos';
+      });
+      return;
+    }
 
     setState(() {
       _isUploadingFile = true;
@@ -172,6 +208,7 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
         file: _selectedFile!,
         email: _userProfile?['email'] ?? '',
         telefono: _userProfile?['telefono'] ?? '',
+        idCaso: _selectedCasoId,
       );
 
       setState(() {
@@ -212,6 +249,61 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
     }
   }
 
+  Future<void> _crearCasoDialog() async {
+    final perfil = await _dataService.getCurrentPerfil();
+    if (perfil == null) return;
+    final doctores = await _dataService.getDoctores();
+    final TextEditingController nombreCtrl = TextEditingController();
+    Perfil? selectedDoctor;
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text('Nuevo caso'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nombreCtrl,
+                decoration: InputDecoration(labelText: 'Nombre del caso'),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<Perfil>(
+                decoration: const InputDecoration(labelText: 'Doctor'),
+                items: doctores
+                    .map((d) => DropdownMenuItem<Perfil>(
+                          value: d,
+                          child: Text(d.nombre),
+                        ))
+                    .toList(),
+                onChanged: (v) => selectedDoctor = v,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancelar')),
+            ElevatedButton(
+              onPressed: () async {
+                if (nombreCtrl.text.trim().isEmpty || selectedDoctor == null) return;
+                final nuevo = await _dataService.crearCaso(
+                  idUsuario: perfil.id,
+                  idDoctor: selectedDoctor!.id,
+                  nombre: nombreCtrl.text.trim(),
+                );
+                setState(() {
+                  _selectedCasoId = nuevo.id;
+                });
+                Navigator.of(ctx).pop();
+                await _loadCasos();
+              },
+              child: const Text('Crear'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -250,6 +342,55 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 32),
+
+                // Sección de Casos: selector + nuevo + buscador
+                Container(
+                  padding: EdgeInsets.all(16),
+                  margin: EdgeInsets.symmetric(horizontal: 16),
+                  decoration: p3PanelDecoration(context),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<int>(
+                              value: _selectedCasoId,
+                              hint: const Text('Seleccionar caso'),
+                              items: _casos
+                                  .map((c) => DropdownMenuItem<int>(
+                                        value: c.id,
+                                        child: Text(c.nombreCaso),
+                                      ))
+                                  .toList(),
+                              onChanged: (v) async {
+                                setState(() => _selectedCasoId = v);
+                                await _loadChatGeneral();
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton.icon(
+                            onPressed: _crearCasoDialog,
+                            icon: const Icon(Icons.add),
+                            label: const Text('Nuevo Caso'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        decoration: const InputDecoration(
+                          labelText: 'Buscar caso...',
+                          prefixIcon: Icon(Icons.search),
+                        ),
+                        onChanged: (v) async {
+                          _searchCaso = v;
+                          await _loadCasos();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
 
                 // Sección de Chat con n8n
                 Container(
@@ -804,7 +945,7 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
                                   itemBuilder: (context, idx) {
                                     final m = _chatGeneral[idx];
                                     final isAI =
-                                        (m['type']?.toString()?.toLowerCase() ==
+                                        (m['type']?.toString().toLowerCase() ==
                                         'ia');
                                     return Container(
                                       margin: EdgeInsets.only(bottom: 8),
@@ -844,7 +985,7 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
                                           ),
                                           SizedBox(height: 4),
                                           Text(
-                                            m['message']?.toString() ?? '',
+                                            (m['message'] ?? '').toString(),
                                             style: TextStyle(fontSize: 14),
                                           ),
                                           if ((m['created_at'] ?? '')

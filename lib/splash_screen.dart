@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:medinova/auth_check.dart';
 import 'package:medinova/sound_helper.dart';
+import 'package:medinova/p3_theme.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -94,16 +95,7 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Theme.of(context).colorScheme.primary,
-              Theme.of(context).colorScheme.secondary,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
+        decoration: p3BackgroundGradient(),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

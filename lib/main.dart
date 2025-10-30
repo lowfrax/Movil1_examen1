@@ -8,6 +8,7 @@ import 'package:medinova/doctor_screen.dart';
 import 'package:medinova/custom_transitions.dart';
 import 'package:medinova/app_lifecycle_manager.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:medinova/p3_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,12 +30,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Medinova',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Color(0xFF6366F1),
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
+      theme: buildP3Theme().copyWith(
         pageTransitionsTheme: PageTransitionsTheme(
           builders: {
             TargetPlatform.android: CustomPageRouteBuilder(),

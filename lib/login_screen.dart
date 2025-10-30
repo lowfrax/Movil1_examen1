@@ -9,6 +9,8 @@ import 'package:medinova/sound_helper.dart';
 import 'package:medinova/music_control_widget.dart';
 import 'package:medinova/custom_transitions.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:medinova/p3_theme.dart';
+import 'package:medinova/widgets/p3_pattern.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -122,18 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Theme.of(context).colorScheme.primary,
-                  Theme.of(context).colorScheme.secondary,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
+          Container(decoration: p3BackgroundGradient()),
           SafeArea(
             child: SingleChildScrollView(
               padding: EdgeInsets.all(24),
@@ -183,150 +174,154 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   SizedBox(height: 48),
                   Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 20,
-                          offset: Offset(0, 10),
-                        ),
-                      ],
-                    ),
+                    decoration: p3PanelDecoration(context),
                     padding: EdgeInsets.all(24),
-                    child: Form(
-                      key: _formkey,
-                      child: Column(
-                        children: [
-                          TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: InputDecoration(
-                              labelText: 'Correo',
-                              hintText: 'Ingresa tu correo',
-                              prefixIcon: Icon(Icons.email_outlined),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-
-                              filled: true,
-                              fillColor: Colors.grey[50],
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Por favor ingresa tu correo';
-                              }
-                              if (!value.contains('@')) {
-                                return 'Por favor ingresa un correo valido';
-                              }
-                              return null;
-                            },
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: P3DiagonalPattern(
+                            spacing: 20,
+                            strokeWidth: 1.2,
+                            opacity: 0.05,
                           ),
-
-                          SizedBox(height: 16),
-
-                          TextFormField(
-                            controller: _passwordController,
-                            obscureText: _obsecurePassword,
-                            decoration: InputDecoration(
-                              labelText: 'Contraseña',
-                              hintText: 'Ingresa su contraseña',
-                              prefixIcon: Icon(Icons.password_outlined),
-                              suffixIcon: IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _obsecurePassword = !_obsecurePassword;
-                                  });
-                                },
-                                icon: Icon(
-                                  _obsecurePassword
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined,
-                                ),
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-
-                              filled: true,
-                              fillColor: Colors.grey[50],
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Por favor ingresa tu contraseña';
-                              }
-
-                              return null;
-                            },
-                          ),
-
-                          SizedBox(height: 24),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: ElevatedButton(
-                              onPressed: _isLoading ? null : _signIn,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(
-                                  context,
-                                ).colorScheme.primary,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: _isLoading
-                                  ? SizedBox(
-                                      height: 24,
-                                      width: 24,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : Text(
-                                      "Sign In",
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                          SizedBox(height: 24),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                        ),
+                        Form(
+                          key: _formkey,
+                          child: Column(
                             children: [
-                              Text("No tienes un usuario?", style: TextStyle()),
-                              TextButton(
-                                onPressed: () async {
-                                  await SoundHelper.playSelectSound();
-                                  Navigator.push(
-                                    context,
-                                    CustomPageRoute(
-                                      child: SignupScreen(),
-                                      transitionType: 'fadeWithScale',
-                                      duration: Duration(milliseconds: 400),
-                                    ),
-                                  );
+                              TextFormField(
+                                controller: _emailController,
+                                keyboardType: TextInputType.emailAddress,
+                                decoration: InputDecoration(
+                                  labelText: 'Correo',
+                                  hintText: 'Ingresa tu correo',
+                                  prefixIcon: Icon(Icons.email_outlined),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+
+                                  filled: true,
+                                  fillColor: Colors.grey[50],
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Por favor ingresa tu correo';
+                                  }
+                                  if (!value.contains('@')) {
+                                    return 'Por favor ingresa un correo valido';
+                                  }
+                                  return null;
                                 },
-                                child: Text(
-                                  "Sign Up",
-                                  style: TextStyle(
-                                    color: Theme.of(
+                              ),
+
+                              SizedBox(height: 16),
+
+                              TextFormField(
+                                controller: _passwordController,
+                                obscureText: _obsecurePassword,
+                                decoration: InputDecoration(
+                                  labelText: 'Contraseña',
+                                  hintText: 'Ingresa su contraseña',
+                                  prefixIcon: Icon(Icons.password_outlined),
+                                  suffixIcon: IconButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _obsecurePassword = !_obsecurePassword;
+                                      });
+                                    },
+                                    icon: Icon(
+                                      _obsecurePassword
+                                          ? Icons.visibility_outlined
+                                          : Icons.visibility_off_outlined,
+                                    ),
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+
+                                  filled: true,
+                                  fillColor: Colors.grey[50],
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Por favor ingresa tu contraseña';
+                                  }
+
+                                  return null;
+                                },
+                              ),
+
+                              SizedBox(height: 24),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 56,
+                                child: ElevatedButton(
+                                  onPressed: _isLoading ? null : _signIn,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Theme.of(
                                       context,
                                     ).colorScheme.primary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
                                   ),
+                                  child: _isLoading
+                                      ? SizedBox(
+                                          height: 24,
+                                          width: 24,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : Text(
+                                          "Sign In",
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
                                 ),
+                              ),
+                              SizedBox(height: 24),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    "No tienes un usuario?",
+                                    style: TextStyle(),
+                                  ),
+                                  TextButton(
+                                    onPressed: () async {
+                                      await SoundHelper.playSelectSound();
+                                      Navigator.push(
+                                        context,
+                                        CustomPageRoute(
+                                          child: SignupScreen(),
+                                          transitionType: 'fadeWithScale',
+                                          duration: Duration(milliseconds: 400),
+                                        ),
+                                      );
+                                    },
+                                    child: Text(
+                                      "Sign Up",
+                                      style: TextStyle(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

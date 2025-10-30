@@ -10,6 +10,8 @@ import 'package:medinova/services/role_service.dart';
 import 'package:medinova/widgets/role_dropdown.dart';
 import 'package:medinova/widgets/persona_text_field.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:medinova/p3_theme.dart';
+import 'package:medinova/widgets/p3_pattern.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -207,18 +209,7 @@ class _SignupScreenState extends State<SignupScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Theme.of(context).colorScheme.primary,
-                  Theme.of(context).colorScheme.secondary,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
+          Container(decoration: p3BackgroundGradient()),
           SafeArea(
             child: SingleChildScrollView(
               padding: EdgeInsets.all(24),
@@ -268,290 +259,297 @@ class _SignupScreenState extends State<SignupScreen> {
 
                   SizedBox(height: 48),
                   Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 20,
-                          offset: Offset(0, 10),
-                        ),
-                      ],
-                    ),
+                    decoration: p3PanelDecoration(context),
                     padding: EdgeInsets.all(24),
-                    child: Form(
-                      key: _formkey,
-                      child: Column(
-                        children: [
-                          PersonaTextField(
-                            controller: _nameController,
-                            labelText: 'Nombre',
-                            hintText: 'Ingresa tu nombre completo',
-                            prefixIcon: Icons.person_outlined,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Por favor ingresa tu nombre';
-                              }
-                              return null;
-                            },
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: P3DiagonalPattern(
+                            spacing: 20,
+                            strokeWidth: 1.2,
+                            opacity: 0.05,
                           ),
-
-                          SizedBox(height: 16),
-
-                          // Campo de teléfono con código de país
-                          Row(
+                        ),
+                        Form(
+                          key: _formkey,
+                          child: Column(
                             children: [
-                              // Selector de código de país
-                              Container(
-                                width: 100,
-                                child: DropdownButtonFormField<String>(
-                                  value: _selectedCountryCode,
-                                  decoration: InputDecoration(
-                                    labelText: 'Código',
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 16,
+                              PersonaTextField(
+                                controller: _nameController,
+                                labelText: 'Nombre',
+                                hintText: 'Ingresa tu nombre completo',
+                                prefixIcon: Icons.person_outlined,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Por favor ingresa tu nombre';
+                                  }
+                                  return null;
+                                },
+                              ),
+
+                              SizedBox(height: 16),
+
+                              // Campo de teléfono con código de país
+                              Row(
+                                children: [
+                                  // Selector de código de país
+                                  Container(
+                                    width: 100,
+                                    child: DropdownButtonFormField<String>(
+                                      value: _selectedCountryCode,
+                                      decoration: InputDecoration(
+                                        labelText: 'Código',
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 16,
+                                        ),
+                                      ),
+                                      items: _countryCodes.map((String code) {
+                                        return DropdownMenuItem<String>(
+                                          value: code,
+                                          child: Text(
+                                            code,
+                                            style: TextStyle(fontSize: 14),
+                                          ),
+                                        );
+                                      }).toList(),
+                                      onChanged: (String? newValue) {
+                                        setState(() {
+                                          _selectedCountryCode = newValue!;
+                                        });
+                                      },
                                     ),
                                   ),
-                                  items: _countryCodes.map((String code) {
-                                    return DropdownMenuItem<String>(
-                                      value: code,
-                                      child: Text(
-                                        code,
-                                        style: TextStyle(fontSize: 14),
-                                      ),
-                                    );
-                                  }).toList(),
-                                  onChanged: (String? newValue) {
+                                  SizedBox(width: 12),
+                                  // Campo de número de teléfono
+                                  Expanded(
+                                    child: PersonaTextField(
+                                      controller: _phoneController,
+                                      labelText: 'Teléfono',
+                                      hintText: '88578125',
+                                      prefixIcon: Icons.phone_outlined,
+                                      keyboardType: TextInputType.phone,
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Por favor ingresa tu teléfono';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              SizedBox(height: 16),
+
+                              // Combo box para selección de roles
+                              if (_loadingRoles)
+                                Container(
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.outline.withOpacity(0.3),
+                                    ),
+                                    color: Colors.grey[50],
+                                  ),
+                                  child: Center(
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  Theme.of(
+                                                    context,
+                                                  ).colorScheme.primary,
+                                                ),
+                                          ),
+                                        ),
+                                        SizedBox(width: 12),
+                                        Text(
+                                          'Cargando roles...',
+                                          style: TextStyle(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withOpacity(0.7),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              else
+                                RoleDropdown(
+                                  selectedRole: _selectedRole,
+                                  onChanged: (Role? role) {
                                     setState(() {
-                                      _selectedCountryCode = newValue!;
+                                      _selectedRole = role;
                                     });
                                   },
+                                  roles: _roles,
                                 ),
-                              ),
-                              SizedBox(width: 12),
-                              // Campo de número de teléfono
-                              Expanded(
-                                child: PersonaTextField(
-                                  controller: _phoneController,
-                                  labelText: 'Teléfono',
-                                  hintText: '88578125',
-                                  prefixIcon: Icons.phone_outlined,
-                                  keyboardType: TextInputType.phone,
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Por favor ingresa tu teléfono';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
 
-                          SizedBox(height: 16),
+                              SizedBox(height: 16),
 
-                          // Combo box para selección de roles
-                          if (_loadingRoles)
-                            Container(
-                              height: 60,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.outline.withOpacity(0.3),
-                                ),
-                                color: Colors.grey[50],
-                              ),
-                              child: Center(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
-                                            ),
-                                      ),
-                                    ),
-                                    SizedBox(width: 12),
-                                    Text(
-                                      'Cargando roles...',
-                                      style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.7),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            )
-                          else
-                            RoleDropdown(
-                              selectedRole: _selectedRole,
-                              onChanged: (Role? role) {
-                                setState(() {
-                                  _selectedRole = role;
-                                });
-                              },
-                              roles: _roles,
-                            ),
-
-                          SizedBox(height: 16),
-
-                          PersonaTextField(
-                            controller: _emailController,
-                            labelText: 'Correo',
-                            hintText: 'Ingresa tu correo',
-                            prefixIcon: Icons.email_outlined,
-                            keyboardType: TextInputType.emailAddress,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Por favor ingresa tu correo';
-                              }
-                              if (!value.contains('@')) {
-                                return 'Por favor ingresa un correo válido';
-                              }
-                              return null;
-                            },
-                          ),
-
-                          SizedBox(height: 16),
-
-                          PersonaTextField(
-                            controller: _passwordController,
-                            labelText: 'Contraseña',
-                            hintText: 'Ingresa tu contraseña',
-                            prefixIcon: Icons.password_outlined,
-                            obscureText: _obsecurePassword,
-                            suffixIcon: IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  _obsecurePassword = !_obsecurePassword;
-                                });
-                              },
-                              icon: Icon(
-                                _obsecurePassword
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Por favor ingresa tu contraseña';
-                              }
-                              return null;
-                            },
-                          ),
-
-                          SizedBox(height: 16),
-
-                          PersonaTextField(
-                            controller: _confirmPasswordController,
-                            labelText: 'Confirmación de Contraseña',
-                            hintText: 'Ingresa tu contraseña nuevamente',
-                            prefixIcon: Icons.password_outlined,
-                            obscureText: _obsecureConfirmPassword,
-                            suffixIcon: IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  _obsecureConfirmPassword =
-                                      !_obsecureConfirmPassword;
-                                });
-                              },
-                              icon: Icon(
-                                _obsecureConfirmPassword
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Por favor confirma tu contraseña';
-                              }
-                              return null;
-                            },
-                          ),
-
-                          SizedBox(height: 24),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: ElevatedButton(
-                              onPressed: _isLoading ? null : _signUp,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(
-                                  context,
-                                ).colorScheme.primary,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: _isLoading
-                                  ? SizedBox(
-                                      height: 24,
-                                      width: 24,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : Text(
-                                      "Crear Usuario",
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                          SizedBox(height: 24),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text("Ya tienes un usuario?", style: TextStyle()),
-                              TextButton(
-                                onPressed: () async {
-                                  await SoundHelper.playSelectSound();
-                                  Navigator.push(
-                                    context,
-                                    CustomPageRoute(
-                                      child: LoginScreen(),
-                                      transitionType: 'slideDiagonal',
-                                      duration: Duration(milliseconds: 400),
-                                    ),
-                                  );
+                              PersonaTextField(
+                                controller: _emailController,
+                                labelText: 'Correo',
+                                hintText: 'Ingresa tu correo',
+                                prefixIcon: Icons.email_outlined,
+                                keyboardType: TextInputType.emailAddress,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Por favor ingresa tu correo';
+                                  }
+                                  if (!value.contains('@')) {
+                                    return 'Por favor ingresa un correo válido';
+                                  }
+                                  return null;
                                 },
-                                child: Text(
-                                  "Login",
-                                  style: TextStyle(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                              ),
+
+                              SizedBox(height: 16),
+
+                              PersonaTextField(
+                                controller: _passwordController,
+                                labelText: 'Contraseña',
+                                hintText: 'Ingresa tu contraseña',
+                                prefixIcon: Icons.password_outlined,
+                                obscureText: _obsecurePassword,
+                                suffixIcon: IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _obsecurePassword = !_obsecurePassword;
+                                    });
+                                  },
+                                  icon: Icon(
+                                    _obsecurePassword
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
                                   ),
                                 ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Por favor ingresa tu contraseña';
+                                  }
+                                  return null;
+                                },
+                              ),
+
+                              SizedBox(height: 16),
+
+                              PersonaTextField(
+                                controller: _confirmPasswordController,
+                                labelText: 'Confirmación de Contraseña',
+                                hintText: 'Ingresa tu contraseña nuevamente',
+                                prefixIcon: Icons.password_outlined,
+                                obscureText: _obsecureConfirmPassword,
+                                suffixIcon: IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _obsecureConfirmPassword =
+                                          !_obsecureConfirmPassword;
+                                    });
+                                  },
+                                  icon: Icon(
+                                    _obsecureConfirmPassword
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                  ),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Por favor confirma tu contraseña';
+                                  }
+                                  return null;
+                                },
+                              ),
+
+                              SizedBox(height: 24),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 56,
+                                child: ElevatedButton(
+                                  onPressed: _isLoading ? null : _signUp,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: _isLoading
+                                      ? SizedBox(
+                                          height: 24,
+                                          width: 24,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : Text(
+                                          "Crear Usuario",
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                              SizedBox(height: 24),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    "Ya tienes un usuario?",
+                                    style: TextStyle(),
+                                  ),
+                                  TextButton(
+                                    onPressed: () async {
+                                      await SoundHelper.playSelectSound();
+                                      Navigator.push(
+                                        context,
+                                        CustomPageRoute(
+                                          child: LoginScreen(),
+                                          transitionType: 'slideDiagonal',
+                                          duration: Duration(milliseconds: 400),
+                                        ),
+                                      );
+                                    },
+                                    child: Text(
+                                      "Login",
+                                      style: TextStyle(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

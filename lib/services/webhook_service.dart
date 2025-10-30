@@ -47,9 +47,6 @@ class WebhookService {
       ); // Debug
 
       if (response.statusCode == 200) {
-        // Guardar el mensaje en la base de datos
-        await _saveMessageToDatabase(messageStr, emailStr, telefonoStr);
-
         return {
           'success': true,
           'statusCode': response.statusCode,
@@ -137,43 +134,47 @@ class WebhookService {
     }
   }
 
-  /// Guarda el mensaje en la base de datos
-  Future<void> _saveMessageToDatabase(
-    String message,
-    String email,
-    String telefono,
-  ) async {
-    try {
-      // Generar un session_id único basado en el teléfono
-      final sessionId =
-          'session_${telefono}_${DateTime.now().millisecondsSinceEpoch}';
-
-      await _supabase.from('n8n_chat_histories').insert({
-        'session_id': sessionId,
-        'message': message,
-        'created_at': DateTime.now().toIso8601String(),
-      });
-    } catch (e) {
-      print('Error al guardar mensaje en la base de datos: $e');
-    }
-  }
+  // Eliminado: no insertamos mensajes manualmente en la tabla de n8n
 
   /// Obtiene el historial de mensajes del usuario basado en su teléfono
   Future<List<Map<String, dynamic>>> getChatHistory(String telefono) async {
     try {
-      // Buscar todos los mensajes que coincidan con el teléfono del usuario
-      // El session_id debe contener el teléfono del usuario
+      // Filtrar por session_id exactamente igual al teléfono del perfil
       final response = await _supabase
           .from('n8n_chat_histories')
-          .select('*')
-          .like('session_id', '%${telefono}%')
-          .order('created_at', ascending: false);
+          .select('id, session_id, message')
+          .eq('session_id', telefono)
+          .order('id', ascending: false);
 
       print(
         'Historial encontrado para teléfono $telefono: ${response.length} mensajes',
-      ); // Debug
+      );
 
-      return List<Map<String, dynamic>>.from(response);
+      // Mapear jsonb message → { message: String, created_at: String? }
+      final List<dynamic> rows = response as List<dynamic>;
+      return rows.map<Map<String, dynamic>>((row) {
+        final Map<String, dynamic> r = Map<String, dynamic>.from(row);
+        final dynamic msg = r['message'];
+        String messageText = '';
+        String? createdAt;
+        String? type;
+        if (msg is Map<String, dynamic>) {
+          messageText = (msg['content'] ?? msg['text'] ?? msg['message'] ?? '')
+              .toString();
+          createdAt = (msg['created_at'] ?? msg['timestamp'] ?? msg['time'])
+              ?.toString();
+          type = (msg['type'] ?? '').toString();
+        } else {
+          messageText = msg?.toString() ?? '';
+        }
+        return {
+          'message': messageText,
+          'created_at': createdAt,
+          'id': r['id'],
+          'session_id': r['session_id'],
+          'type': type,
+        };
+      }).toList();
     } catch (e) {
       print('Error al obtener historial de chat: $e');
       return [];

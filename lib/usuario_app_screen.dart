@@ -3,6 +3,8 @@ import 'package:medinova/sound_helper.dart';
 import 'package:medinova/music_control_widget.dart';
 import 'package:medinova/services/webhook_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:medinova/p3_theme.dart';
+import 'package:medinova/widgets/p3_pattern.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 
@@ -181,18 +183,7 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
       ),
       body: Stack(
         children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Theme.of(context).colorScheme.primary,
-                  Theme.of(context).colorScheme.secondary,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
+          Container(decoration: p3BackgroundGradient()),
           SingleChildScrollView(
             padding: EdgeInsets.all(20),
             child: Column(
@@ -224,174 +215,56 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
                 Container(
                   padding: EdgeInsets.all(24),
                   margin: EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 20,
-                        offset: Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  decoration: p3PanelDecoration(context),
+                  child: Stack(
                     children: [
-                      Row(
-                        children: [
-                          Icon(Icons.chat, color: Colors.blue, size: 24),
-                          SizedBox(width: 8),
-                          Text(
-                            'Chat con Asistente',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 16),
-                      TextField(
-                        controller: _messageController,
-                        decoration: InputDecoration(
-                          labelText: 'Escribe tu mensaje',
-                          hintText: 'Escribe aquí tu consulta...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          prefixIcon: Icon(Icons.message),
-                        ),
-                        maxLines: 3,
-                      ),
-                      SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _isLoading ? null : _sendMessage,
-                          icon: _isLoading
-                              ? SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                  ),
-                                )
-                              : Icon(Icons.send),
-                          label: Text(
-                            _isLoading ? 'Enviando...' : 'Enviar Mensaje',
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
+                      Positioned.fill(
+                        child: P3DiagonalPattern(
+                          spacing: 20,
+                          strokeWidth: 1.2,
+                          opacity: 0.05,
                         ),
                       ),
-                      if (_response.isNotEmpty) ...[
-                        SizedBox(height: 16),
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: _response.contains('Error')
-                                ? Colors.red.withOpacity(0.1)
-                                : Colors.green.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: _response.contains('Error')
-                                  ? Colors.red.withOpacity(0.3)
-                                  : Colors.green.withOpacity(0.3),
-                            ),
-                          ),
-                          child: Text(
-                            _response,
-                            style: TextStyle(
-                              color: _response.contains('Error')
-                                  ? Colors.red[700]
-                                  : Colors.green[700],
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-
-                SizedBox(height: 24),
-
-                // Sección de Subida de Archivos
-                Container(
-                  padding: EdgeInsets.all(24),
-                  margin: EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 20,
-                        offset: Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.upload_file,
-                            color: Colors.green,
-                            size: 24,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Subir Archivos',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        'Selecciona un archivo PDF o Word para enviar:',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      ),
-                      SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _selectFile,
-                              icon: Icon(Icons.folder_open),
-                              label: Text('Seleccionar Archivo'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.chat,
+                                color: Theme.of(context).colorScheme.secondary,
+                                size: 24,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Chat con Asistente',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
-                            ),
+                            ],
                           ),
-                          SizedBox(width: 12),
-                          Expanded(
+                          SizedBox(height: 16),
+                          TextField(
+                            controller: _messageController,
+                            decoration: InputDecoration(
+                              labelText: 'Escribe tu mensaje',
+                              hintText: 'Escribe aquí tu consulta...',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              prefixIcon: Icon(Icons.message),
+                            ),
+                            maxLines: 3,
+                          ),
+                          SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
                             child: ElevatedButton.icon(
-                              onPressed: _isUploadingFile ? null : _uploadFile,
-                              icon: _isUploadingFile
+                              onPressed: _isLoading ? null : _sendMessage,
+                              icon: _isLoading
                                   ? SizedBox(
                                       width: 20,
                                       height: 20,
@@ -403,13 +276,17 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
                                             ),
                                       ),
                                     )
-                                  : Icon(Icons.upload),
+                                  : Icon(Icons.send),
                               label: Text(
-                                _isUploadingFile ? 'Subiendo...' : 'Subir',
+                                _isLoading ? 'Enviando...' : 'Enviar Mensaje',
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                foregroundColor: Colors.white,
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
+                                foregroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.onPrimary,
                                 padding: EdgeInsets.symmetric(vertical: 12),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -417,67 +294,224 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                      if (_selectedFile != null) ...[
-                        SizedBox(height: 12),
-                        Container(
-                          padding: EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.blue[50],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.blue[200]!),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.description, color: Colors.blue),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _selectedFile!.path.split('/').last,
-                                  style: TextStyle(fontSize: 14),
+                          if (_response.isNotEmpty) ...[
+                            SizedBox(height: 16),
+                            Container(
+                              width: double.infinity,
+                              padding: EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: _response.contains('Error')
+                                    ? Colors.red.withOpacity(0.08)
+                                    : Theme.of(
+                                        context,
+                                      ).colorScheme.tertiary.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: _response.contains('Error')
+                                      ? Colors.red.withOpacity(0.25)
+                                      : Theme.of(
+                                          context,
+                                        ).colorScheme.tertiary.withOpacity(0.3),
                                 ),
                               ),
-                              IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _selectedFile = null;
-                                    _fileResponse = '';
-                                  });
-                                },
-                                icon: Icon(Icons.close, color: Colors.red),
+                              child: Text(
+                                _response,
+                                style: TextStyle(
+                                  color: _response.contains('Error')
+                                      ? Colors.red[700]
+                                      : Theme.of(context).colorScheme.primary,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 24),
+
+                // Sección de Subida de Archivos
+                Container(
+                  padding: EdgeInsets.all(24),
+                  margin: EdgeInsets.symmetric(horizontal: 16),
+                  decoration: p3PanelDecoration(context),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: P3DiagonalPattern(
+                          spacing: 20,
+                          strokeWidth: 1.2,
+                          opacity: 0.05,
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.upload_file,
+                                color: Theme.of(context).colorScheme.tertiary,
+                                size: 24,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Subir Archivos',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                      ],
-                      if (_fileResponse.isNotEmpty) ...[
-                        SizedBox(height: 16),
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: _fileResponse.contains('Error')
-                                ? Colors.red.withOpacity(0.1)
-                                : Colors.green.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: _fileResponse.contains('Error')
-                                  ? Colors.red.withOpacity(0.3)
-                                  : Colors.green.withOpacity(0.3),
-                            ),
-                          ),
-                          child: Text(
-                            _fileResponse,
+                          SizedBox(height: 16),
+                          Text(
+                            'Selecciona un archivo PDF o Word para enviar:',
                             style: TextStyle(
-                              color: _fileResponse.contains('Error')
-                                  ? Colors.red[700]
-                                  : Colors.green[700],
                               fontSize: 14,
+                              color: Colors.grey[600],
                             ),
                           ),
-                        ),
-                      ],
+                          SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: _selectFile,
+                                  icon: Icon(Icons.folder_open),
+                                  label: Text('Seleccionar Archivo'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.secondary,
+                                    foregroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.onSecondary,
+                                    padding: EdgeInsets.symmetric(vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: _isUploadingFile
+                                      ? null
+                                      : _uploadFile,
+                                  icon: _isUploadingFile
+                                      ? SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  Colors.white,
+                                                ),
+                                          ),
+                                        )
+                                      : Icon(Icons.upload),
+                                  label: Text(
+                                    _isUploadingFile ? 'Subiendo...' : 'Subir',
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    foregroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary,
+                                    padding: EdgeInsets.symmetric(vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (_selectedFile != null) ...[
+                            SizedBox(height: 12),
+                            Container(
+                              padding: EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.tertiary.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.tertiary.withOpacity(0.35),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.description,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _selectedFile!.path.split('/').last,
+                                      style: TextStyle(fontSize: 14),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _selectedFile = null;
+                                        _fileResponse = '';
+                                      });
+                                    },
+                                    icon: Icon(Icons.close, color: Colors.red),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                          if (_fileResponse.isNotEmpty) ...[
+                            SizedBox(height: 16),
+                            Container(
+                              width: double.infinity,
+                              padding: EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: _fileResponse.contains('Error')
+                                    ? Colors.red.withOpacity(0.08)
+                                    : Theme.of(
+                                        context,
+                                      ).colorScheme.tertiary.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: _fileResponse.contains('Error')
+                                      ? Colors.red.withOpacity(0.25)
+                                      : Theme.of(
+                                          context,
+                                        ).colorScheme.tertiary.withOpacity(0.3),
+                                ),
+                              ),
+                              child: Text(
+                                _fileResponse,
+                                style: TextStyle(
+                                  color: _fileResponse.contains('Error')
+                                      ? Colors.red[700]
+                                      : Theme.of(context).colorScheme.primary,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -488,113 +522,155 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
                 Container(
                   padding: EdgeInsets.all(24),
                   margin: EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 20,
-                        offset: Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  decoration: p3PanelDecoration(context),
+                  child: Stack(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      Positioned.fill(
+                        child: P3DiagonalPattern(
+                          spacing: 20,
+                          strokeWidth: 1.2,
+                          opacity: 0.05,
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Icon(
-                                Icons.history,
-                                color: Colors.orange,
-                                size: 24,
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.history,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.secondary,
+                                    size: 24,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Historial de Mensajes',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Historial de Mensajes',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
+                              Row(
+                                children: [
+                                  IconButton(
+                                    tooltip: 'Actualizar',
+                                    onPressed: _loadChatHistory,
+                                    icon: Icon(Icons.refresh),
+                                  ),
+                                  TextButton.icon(
+                                    onPressed: () {
+                                      setState(() {
+                                        _showHistory = !_showHistory;
+                                      });
+                                    },
+                                    icon: Icon(
+                                      _showHistory
+                                          ? Icons.expand_less
+                                          : Icons.expand_more,
+                                    ),
+                                    label: Text(
+                                      _showHistory ? 'Ocultar' : 'Ver',
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                          TextButton.icon(
-                            onPressed: () {
-                              setState(() {
-                                _showHistory = !_showHistory;
-                              });
-                            },
-                            icon: Icon(
-                              _showHistory
-                                  ? Icons.expand_less
-                                  : Icons.expand_more,
-                            ),
-                            label: Text(_showHistory ? 'Ocultar' : 'Ver'),
-                          ),
+                          if (_showHistory) ...[
+                            SizedBox(height: 16),
+                            if (_chatHistory.isEmpty)
+                              Container(
+                                padding: EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  'No hay mensajes en el historial',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              )
+                            else
+                              Container(
+                                height: 200,
+                                child: ListView.builder(
+                                  itemCount: _chatHistory.length,
+                                  itemBuilder: (context, index) {
+                                    final message = _chatHistory[index];
+                                    final String type = (message['type'] ?? '')
+                                        .toString()
+                                        .toLowerCase();
+                                    final bool isAi = type == 'ai';
+                                    final bg = isAi
+                                        ? Theme.of(context).colorScheme.primary
+                                              .withOpacity(0.12)
+                                        : Theme.of(context).colorScheme.tertiary
+                                              .withOpacity(0.12);
+                                    final border = isAi
+                                        ? Theme.of(context).colorScheme.primary
+                                              .withOpacity(0.35)
+                                        : Theme.of(context).colorScheme.tertiary
+                                              .withOpacity(0.35);
+                                    return Container(
+                                      margin: EdgeInsets.only(bottom: 8),
+                                      padding: EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: bg,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: border),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            isAi ? 'IA' : 'Tú',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                            ),
+                                          ),
+                                          SizedBox(height: 4),
+                                          Text(
+                                            message['message'] ?? '',
+                                            style: TextStyle(fontSize: 14),
+                                          ),
+                                          if ((message['created_at'] ?? '')
+                                              .toString()
+                                              .isNotEmpty) ...[
+                                            SizedBox(height: 4),
+                                            Text(
+                                              'Enviado: ${_formatDate(message['created_at'])}',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                          ],
                         ],
                       ),
-                      if (_showHistory) ...[
-                        SizedBox(height: 16),
-                        if (_chatHistory.isEmpty)
-                          Container(
-                            padding: EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[100],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              'No hay mensajes en el historial',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          )
-                        else
-                          Container(
-                            height: 200,
-                            child: ListView.builder(
-                              itemCount: _chatHistory.length,
-                              itemBuilder: (context, index) {
-                                final message = _chatHistory[index];
-                                return Container(
-                                  margin: EdgeInsets.only(bottom: 8),
-                                  padding: EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue[50],
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: Colors.blue[200]!,
-                                    ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        message['message'] ?? '',
-                                        style: TextStyle(fontSize: 14),
-                                      ),
-                                      SizedBox(height: 4),
-                                      Text(
-                                        'Enviado: ${_formatDate(message['created_at'])}',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                      ],
                     ],
                   ),
                 ),
@@ -605,42 +681,49 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
                 Container(
                   padding: EdgeInsets.all(24),
                   margin: EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 20,
-                        offset: Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Column(
+                  decoration: p3PanelDecoration(context),
+                  child: Stack(
                     children: [
-                      Text(
-                        'Funcionalidades disponibles:',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
+                      Positioned.fill(
+                        child: P3DiagonalPattern(
+                          spacing: 20,
+                          strokeWidth: 1.2,
+                          opacity: 0.05,
                         ),
                       ),
-                      SizedBox(height: 16),
-                      ListTile(
-                        leading: Icon(
-                          Icons.medical_services,
-                          color: Colors.green,
-                        ),
-                        title: Text('Consultar citas médicas'),
-                      ),
-                      ListTile(
-                        leading: Icon(Icons.person, color: Colors.blue),
-                        title: Text('Ver perfil personal'),
-                      ),
-                      ListTile(
-                        leading: Icon(Icons.history, color: Colors.orange),
-                        title: Text('Historial médico'),
+                      Column(
+                        children: [
+                          Text(
+                            'Funcionalidades disponibles:',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          ListTile(
+                            leading: Icon(
+                              Icons.medical_services,
+                              color: Theme.of(context).colorScheme.secondary,
+                            ),
+                            title: Text('Consultar citas médicas'),
+                          ),
+                          ListTile(
+                            leading: Icon(
+                              Icons.person,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            title: Text('Ver perfil personal'),
+                          ),
+                          ListTile(
+                            leading: Icon(
+                              Icons.history,
+                              color: Theme.of(context).colorScheme.secondary,
+                            ),
+                            title: Text('Historial médico'),
+                          ),
+                        ],
                       ),
                     ],
                   ),

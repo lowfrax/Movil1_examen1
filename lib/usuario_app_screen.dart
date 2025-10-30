@@ -7,6 +7,7 @@ import 'package:medinova/p3_theme.dart';
 import 'package:medinova/widgets/p3_pattern.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
+import 'dart:convert';
 
 class UsuarioAppScreen extends StatefulWidget {
   const UsuarioAppScreen({super.key});
@@ -29,6 +30,9 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
   File? _selectedFile;
   bool _isUploadingFile = false;
   String _fileResponse = '';
+
+  List<Map<String, dynamic>> _chatGeneral = [];
+  bool _showChatGeneral = false;
 
   @override
   void initState() {
@@ -59,21 +63,38 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
     }
   }
 
+  Future<void> _loadChatGeneral() async {
+    if (_userProfile?['telefono'] != null) {
+      final general = await _webhookService.getChatGeneral(
+        _userProfile!['telefono'],
+      );
+      setState(() {
+        _chatGeneral = general;
+      });
+    }
+  }
+
   Future<void> _sendMessage() async {
     if (_messageController.text.trim().isEmpty) return;
-
     setState(() {
       _isLoading = true;
       _response = '';
     });
 
+    final userMessage = _messageController.text;
+    final telefono = _userProfile?['telefono'] ?? '';
     try {
-      final result = await _webhookService.sendMessage(
-        message: _messageController.text,
-        email: _userProfile?['email'] ?? '',
-        telefono: _userProfile?['telefono'] ?? '',
+      // Guardar mensaje enviado (user)
+      await _webhookService.insertChatGeneralUser(
+        message: userMessage,
+        telefono: telefono,
       );
 
+      final result = await _webhookService.sendMessage(
+        message: userMessage,
+        email: _userProfile?['email'] ?? '',
+        telefono: telefono,
+      );
       setState(() {
         _response = result['success']
             ? 'Mensaje enviado exitosamente!\nRespuesta: ${result['response']}'
@@ -83,8 +104,27 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
 
       if (result['success']) {
         _messageController.clear();
-        // Recargar historial después de enviar mensaje
+        // Guardar respuesta IA si existe
+        final iaResponseBody = result['response']; // Puede ser JSON o texto
+        // Si es JSON parsea y saca texto de la IA (ajustar según webhook!)
+        String iaText = '';
+        try {
+          final decoded = json.decode(iaResponseBody);
+          iaText = decoded['ia_response'] ?? decoded['response'] ?? '';
+          if (iaText.isEmpty && decoded is Map) iaText = decoded['message']?.toString() ?? '';
+        } catch (_) {
+          iaText = iaResponseBody.toString();
+        }
+        if (iaText.trim().isNotEmpty) {
+          await _webhookService.insertChatGeneralIA(
+            message: iaText,
+            telefono: telefono,
+          );
+        }
+
+        // Recargar historiales
         await _loadChatHistory();
+        await _loadChatGeneral();
       }
     } catch (e) {
       setState(() {
@@ -656,6 +696,164 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
                                             SizedBox(height: 4),
                                             Text(
                                               'Enviado: ${_formatDate(message['created_at'])}',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 32),
+                // Historial Chat General
+                Container(
+                  padding: EdgeInsets.all(24),
+                  margin: EdgeInsets.symmetric(horizontal: 16),
+                  decoration: p3PanelDecoration(context),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: P3DiagonalPattern(
+                          spacing: 20,
+                          strokeWidth: 1.2,
+                          opacity: 0.05,
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.forum,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Chat general',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  IconButton(
+                                    tooltip: 'Actualizar',
+                                    onPressed: _loadChatGeneral,
+                                    icon: Icon(Icons.refresh),
+                                  ),
+                                  TextButton.icon(
+                                    onPressed: () {
+                                      setState(() {
+                                        _showChatGeneral = !_showChatGeneral;
+                                      });
+                                    },
+                                    icon: Icon(
+                                      _showChatGeneral
+                                          ? Icons.expand_less
+                                          : Icons.expand_more,
+                                    ),
+                                    label: Text(
+                                      _showChatGeneral ? 'Ocultar' : 'Ver',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          if (_showChatGeneral) ...[
+                            SizedBox(height: 16),
+                            if (_chatGeneral.isEmpty)
+                              Container(
+                                padding: EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  'No hay mensajes en el chat general',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              )
+                            else
+                              Container(
+                                height: 200,
+                                child: ListView.builder(
+                                  itemCount: _chatGeneral.length,
+                                  itemBuilder: (context, idx) {
+                                    final m = _chatGeneral[idx];
+                                    final isAI =
+                                        (m['type']?.toString()?.toLowerCase() ==
+                                        'ia');
+                                    return Container(
+                                      margin: EdgeInsets.only(bottom: 8),
+                                      padding: EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: isAI
+                                            ? Theme.of(context)
+                                                  .colorScheme
+                                                  .primary
+                                                  .withOpacity(0.12)
+                                            : Theme.of(context)
+                                                  .colorScheme
+                                                  .tertiary
+                                                  .withOpacity(0.12),
+                                        border: Border.all(
+                                          color: isAI
+                                              ? Theme.of(context)
+                                                    .colorScheme
+                                                    .primary
+                                                    .withOpacity(0.35)
+                                              : Theme.of(context)
+                                                    .colorScheme
+                                                    .tertiary
+                                                    .withOpacity(0.35),
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            isAI ? 'IA' : 'Tú',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          SizedBox(height: 4),
+                                          Text(
+                                            m['message']?.toString() ?? '',
+                                            style: TextStyle(fontSize: 14),
+                                          ),
+                                          if ((m['created_at'] ?? '')
+                                              .toString()
+                                              .isNotEmpty) ...[
+                                            SizedBox(height: 4),
+                                            Text(
+                                              'Fecha: ' +
+                                                  (m['created_at'] ?? ''),
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 color: Colors.grey[600],

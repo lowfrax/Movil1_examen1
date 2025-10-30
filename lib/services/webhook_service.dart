@@ -136,6 +136,50 @@ class WebhookService {
 
   // Eliminado: no insertamos mensajes manualmente en la tabla de n8n
 
+  /// Inserta un mensaje del usuario en public.chat_general
+  Future<void> insertChatGeneralUser({
+    required String message,
+    required String telefono,
+  }) async {
+    await _supabase.from('chat_general').insert({
+      'session_id': telefono,
+      'message': message,
+      'type': 'user',
+      'reference': null,
+      // created_at es autogenerado
+    });
+  }
+
+  /// Inserta un mensaje de la IA en public.chat_general
+  Future<void> insertChatGeneralIA({
+    required String message,
+    required String telefono,
+  }) async {
+    await _supabase.from('chat_general').insert({
+      'session_id': telefono,
+      'message': message,
+      'type': 'IA',
+      'reference': null,
+      // created_at es autogenerado
+    });
+  }
+
+  /// Trae historial de chat_general de un usuario por session_id o reference, ordenado por created_at desc
+  Future<List<Map<String, dynamic>>> getChatGeneral(String telefono) async {
+    try {
+      final response = await _supabase
+          .from('chat_general')
+          .select('id, session_id, message, type, created_at, reference')
+          .or('session_id.eq.$telefono,reference.eq.$telefono')
+          .order('created_at', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response as List);
+    } catch (e) {
+      print('Error al obtener chat_general: $e');
+      return [];
+    }
+  }
+
   /// Obtiene el historial de mensajes del usuario basado en su teléfono
   Future<List<Map<String, dynamic>>> getChatHistory(String telefono) async {
     try {

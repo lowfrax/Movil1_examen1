@@ -30,6 +30,7 @@ class _UserCaseDetailScreenState extends State<UserCaseDetailScreen> {
   List<Map<String, dynamic>> _chatGeneral = [];
   List<Medicamento> _medicamentos = [];
   bool _loading = true;
+  String? _nombreCaso;
 
   File? _selectedFile;
   bool _uploading = false;
@@ -43,9 +44,13 @@ class _UserCaseDetailScreenState extends State<UserCaseDetailScreen> {
 
   Future<void> _loadAll() async {
     setState(() => _loading = true);
+    final caso = await _dataService.getCasoById(widget.idCaso);
     _chatGeneral = await _dataService.getChatGeneralByCaso(widget.idCaso);
     _medicamentos = await _dataService.getMedicamentosByCaso(widget.idCaso);
-    setState(() => _loading = false);
+    setState(() {
+      _nombreCaso = caso?.nombreCaso;
+      _loading = false;
+    });
   }
 
   Future<void> _sendMessage() async {
@@ -183,7 +188,11 @@ class _UserCaseDetailScreenState extends State<UserCaseDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Caso #${widget.idCaso}'), backgroundColor: Theme.of(context).colorScheme.primary, foregroundColor: Colors.white),
+      appBar: AppBar(
+        title: Text(_nombreCaso ?? 'Caso #${widget.idCaso}'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
+      ),
       body: Stack(children: [
         Container(decoration: p3BackgroundGradient()),
         _loading

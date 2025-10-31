@@ -19,6 +19,12 @@ class SupabaseDataService {
     return (rows as List).map((e) => Perfil.fromMap(Map<String, dynamic>.from(e))).toList();
   }
 
+  Future<Perfil?> getPerfilById(int id) async {
+    final data = await _supabase.from('perfil').select('*').eq('id', id).maybeSingle();
+    if (data == null) return null;
+    return Perfil.fromMap(Map<String, dynamic>.from(data));
+  }
+
   Future<Caso> crearCaso({required int idUsuario, required int idDoctor, required String nombre}) async {
     final inserted = await _supabase.from('casos').insert({
       'id_usuario': idUsuario,
@@ -52,6 +58,12 @@ class SupabaseDataService {
 
   Future<void> eliminarLogicoCaso(int idCaso) async {
     await _supabase.from('casos').update({'deleted': 1}).eq('id', idCaso);
+  }
+
+  Future<Caso?> getCasoById(int idCaso) async {
+    final data = await _supabase.from('casos').select('*').eq('id', idCaso).maybeSingle();
+    if (data == null) return null;
+    return Caso.fromMap(Map<String, dynamic>.from(data));
   }
 
   // Chat General por id_caso

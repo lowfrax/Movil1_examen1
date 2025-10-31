@@ -35,6 +35,7 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
   int? _selectedCasoId;
   String _searchCaso = '';
   bool _isLoadingCasos = false;
+  Map<int, String> _doctoresNombres = {}; // Mapa para almacenar ID -> Nombre
 
   int get _countTotal => _casos.length;
   int get _countPendientes =>
@@ -66,8 +67,18 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
       perfil.id,
       filtroNombre: _searchCaso,
     );
+    // Cargar nombres de doctores
+    final Set<int> doctoresIds = casos.map((c) => c.idDoctor).toSet();
+    final Map<int, String> nombresMap = {};
+    for (final doctorId in doctoresIds) {
+      final doctorPerfil = await _dataService.getPerfilById(doctorId);
+      if (doctorPerfil != null) {
+        nombresMap[doctorId] = doctorPerfil.nombre;
+      }
+    }
     setState(() {
       _casos = casos;
+      _doctoresNombres = nombresMap;
       if (_selectedCasoId != null &&
           !_casos.any((c) => c.id == _selectedCasoId)) {
         _selectedCasoId = null;
@@ -308,7 +319,7 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'ID #${caso.id} • Doctor: ${caso.idDoctor}',
+                    'ID #${caso.id} • Doctor: ${_doctoresNombres[caso.idDoctor] ?? 'ID ${caso.idDoctor}'}',
                     style: TextStyle(color: Colors.grey[700], fontSize: 12),
                   ),
                 ],

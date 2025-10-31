@@ -20,6 +20,7 @@ class _DoctorCaseDetailState extends State<DoctorCaseDetail> with SingleTickerPr
   bool _loading = true;
   bool _loadingMedicamentos = false;
   late TabController _tabController;
+  String? _nombreCaso;
 
   @override
   void initState() {
@@ -37,9 +38,13 @@ class _DoctorCaseDetailState extends State<DoctorCaseDetail> with SingleTickerPr
 
   Future<void> _load() async {
     setState(() => _loading = true);
+    final caso = await _data.getCasoById(widget.idCaso);
     _chat = await _data.getChatGeneralByCaso(widget.idCaso);
     await _loadMedicamentos();
-    setState(() => _loading = false);
+    setState(() {
+      _nombreCaso = caso?.nombreCaso;
+      _loading = false;
+    });
   }
 
   Future<void> _loadMedicamentos() async {
@@ -327,9 +332,13 @@ class _DoctorCaseDetailState extends State<DoctorCaseDetail> with SingleTickerPr
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Caso #${widget.idCaso}'),
+        title: Text(_nombreCaso ?? 'Caso #${widget.idCaso}'),
         bottom: TabBar(
           controller: _tabController,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
           tabs: const [
             Tab(icon: Icon(Icons.chat), text: 'Chat'),
             Tab(icon: Icon(Icons.medication), text: 'Medicamentos'),

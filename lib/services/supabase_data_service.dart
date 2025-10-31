@@ -86,6 +86,30 @@ class SupabaseDataService {
     final inserted = await _supabase.from('medicamentos').insert(medic.toInsertMap()).select().single();
     return Medicamento.fromMap(Map<String, dynamic>.from(inserted));
   }
+
+  Future<void> actualizarMedicamento({
+    required int idMedicamento,
+    String? nombreMedicamento,
+    String? prescripcion,
+    String? urlWeb,
+    String? urlDrive,
+    String? urlImage,
+    String? type,
+  }) async {
+    final update = <String, dynamic>{};
+    if (nombreMedicamento != null) update['nombre_medicamento'] = nombreMedicamento;
+    if (prescripcion != null) update['prescripcion'] = prescripcion;
+    if (urlWeb != null) update['url_web'] = urlWeb;
+    if (urlDrive != null) update['url_drive'] = urlDrive;
+    if (urlImage != null) update['url_image'] = urlImage;
+    if (type != null) update['type'] = type;
+    if (update.isEmpty) return;
+    await _supabase.from('medicamentos').update(update).eq('id', idMedicamento);
+  }
+
+  Future<void> eliminarMedicamento(int idMedicamento) async {
+    await _supabase.from('medicamentos').delete().eq('id', idMedicamento);
+  }
 }
 
 

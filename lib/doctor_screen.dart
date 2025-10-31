@@ -137,81 +137,157 @@ class _DoctorScreenState extends State<DoctorScreen> {
       ),
       body: Stack(children: [
         Container(decoration: p3BackgroundGradient()),
-        Column(children: [
-          const SizedBox(height: 12),
-          // Resumen de Casos
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(children: [
-              const SizedBox(width: 12),
-              _resumeTile(title: 'Casos\nTotales', count: _countTotal, color: Colors.green),
-              const SizedBox(width: 8),
-              _resumeTile(title: 'Pendientes', count: _countPendientes, color: Colors.orange),
-              const SizedBox(width: 8),
-              _resumeTile(title: 'En Proceso', count: _countAnalizando, color: Colors.blue),
-              const SizedBox(width: 8),
-              _resumeTile(title: 'Finalizados', count: _countFinalizados, color: Colors.green),
-              const SizedBox(width: 12),
-            ]),
-          ),
-          const SizedBox(height: 8),
-          Wrap(spacing: 8, children: [
-            ChoiceChip(label: const Text('Pendientes'), selected: _estado == 'pendiente', onSelected: (s) { setState(() => _estado = 'pendiente'); _applyFilter(_allCasos); }),
-            ChoiceChip(label: const Text('Analizando'), selected: _estado == 'analizando', onSelected: (s) { setState(() => _estado = 'analizando'); _applyFilter(_allCasos); }),
-            ChoiceChip(label: const Text('Finalizados'), selected: _estado == 'finalizado', onSelected: (s) { setState(() => _estado = 'finalizado'); _applyFilter(_allCasos); }),
-          ]),
-          const SizedBox(height: 8),
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : ListView.separated(
-                    padding: const EdgeInsets.all(12),
-                    itemCount: _casos.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (ctx, i) {
-                      final c = _casos[i];
-                      return GestureDetector(
-                        onLongPress: () => _updateEstado(c),
-                        onTap: () {
-                          if (_doctorId != null) {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => DoctorCaseDetail(idCaso: c.id, idDoctor: _doctorId!),
-                              ),
-                            );
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: _statusFill(c.estadoCaso),
-                            border: Border.all(color: _statusBorder(c.estadoCaso).withOpacity(0.35)),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: _statusBorder(c.estadoCaso).withOpacity(0.1),
-                                border: Border.all(color: _statusBorder(c.estadoCaso)),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(c.estadoCaso.toUpperCase(), style: TextStyle(color: _statusBorder(c.estadoCaso), fontWeight: FontWeight.bold, fontSize: 11)),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text(c.nombreCaso, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 4),
-                              Text('#${c.id}', style: TextStyle(color: Colors.grey[700], fontSize: 12)),
-                            ])),
-                            const Icon(Icons.chevron_right),
-                          ]),
-                        ),
-                      );
-                    },
+        SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(children: [
+            const SizedBox(height: 20),
+            // Resumen de Casos en panel blanco
+            Container(
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: p3PanelDecoration(context),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Text(
+                      'Resumen de Casos',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
-          ),
-        ]),
+                  const SizedBox(height: 12),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(children: [
+                      _resumeTile(title: 'Casos\nTotales', count: _countTotal, color: Colors.green),
+                      const SizedBox(width: 8),
+                      _resumeTile(title: 'Pendientes', count: _countPendientes, color: Colors.orange),
+                      const SizedBox(width: 8),
+                      _resumeTile(title: 'En Proceso', count: _countAnalizando, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      _resumeTile(title: 'Finalizados', count: _countFinalizados, color: Colors.green),
+                    ]),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Filtros en panel blanco
+            Container(
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: p3PanelDecoration(context),
+              child: Wrap(spacing: 8, runSpacing: 8, children: [
+                ChoiceChip(
+                  label: const Text('Pendientes'),
+                  selected: _estado == 'pendiente',
+                  onSelected: (s) {
+                    setState(() => _estado = 'pendiente');
+                    _applyFilter(_allCasos);
+                  },
+                ),
+                ChoiceChip(
+                  label: const Text('Analizando'),
+                  selected: _estado == 'analizando',
+                  onSelected: (s) {
+                    setState(() => _estado = 'analizando');
+                    _applyFilter(_allCasos);
+                  },
+                ),
+                ChoiceChip(
+                  label: const Text('Finalizados'),
+                  selected: _estado == 'finalizado',
+                  onSelected: (s) {
+                    setState(() => _estado = 'finalizado');
+                    _applyFilter(_allCasos);
+                  },
+                ),
+              ]),
+            ),
+            const SizedBox(height: 16),
+            // Lista de casos en panel blanco
+            Container(
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: p3PanelDecoration(context),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Casos',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _loading
+                      ? const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+                      : _casos.isEmpty
+                          ? Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[100],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text('No hay casos disponibles.'),
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _casos.length,
+                              separatorBuilder: (_, __) => const SizedBox(height: 8),
+                              itemBuilder: (ctx, i) {
+                                final c = _casos[i];
+                                return GestureDetector(
+                                  onLongPress: () => _updateEstado(c),
+                                  onTap: () {
+                                    if (_doctorId != null) {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => DoctorCaseDetail(idCaso: c.id, idDoctor: _doctorId!),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(14),
+                                    decoration: BoxDecoration(
+                                      color: _statusFill(c.estadoCaso),
+                                      border: Border.all(color: _statusBorder(c.estadoCaso).withOpacity(0.35)),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: _statusBorder(c.estadoCaso).withOpacity(0.1),
+                                          border: Border.all(color: _statusBorder(c.estadoCaso)),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: Text(c.estadoCaso.toUpperCase(), style: TextStyle(color: _statusBorder(c.estadoCaso), fontWeight: FontWeight.bold, fontSize: 11)),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                        Text(c.nombreCaso, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                        const SizedBox(height: 4),
+                                        Text('#${c.id}', style: TextStyle(color: Colors.grey[700], fontSize: 12)),
+                                      ])),
+                                      const Icon(Icons.chevron_right),
+                                    ]),
+                                  ),
+                                );
+                              },
+                            ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+          ]),
+        ),
         const MusicControlWidget(),
       ]),
     );

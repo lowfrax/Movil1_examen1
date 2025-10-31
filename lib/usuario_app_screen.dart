@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:medinova/sound_helper.dart';
 import 'package:medinova/music_control_widget.dart';
-import 'package:medinova/services/webhook_service.dart';
+// import 'package:medinova/services/webhook_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:medinova/p3_theme.dart';
-import 'package:medinova/widgets/p3_pattern.dart';
-import 'package:file_picker/file_picker.dart';
-import 'dart:io';
-import 'dart:convert';
+// import 'package:medinova/widgets/p3_pattern.dart';
+// import 'dart:io';
 import 'models/caso.dart';
 import 'models/perfil.dart';
 // import 'models/medicamento.dart';
@@ -23,22 +21,14 @@ class UsuarioAppScreen extends StatefulWidget {
 
 class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
   final supabase = Supabase.instance.client;
-  final WebhookService _webhookService = WebhookService();
+  // final WebhookService _webhookService = WebhookService();
   final SupabaseDataService _dataService = SupabaseDataService();
-  final TextEditingController _messageController = TextEditingController();
-  String _response = '';
-  bool _isLoading = false;
-  Map<String, dynamic>? _userProfile;
-  List<Map<String, dynamic>> _chatHistory = [];
-  bool _showHistory = false;
+  // Campos eliminados de interacción directa (chat/archivos)
 
   // Variables para subida de archivos
-  File? _selectedFile;
-  bool _isUploadingFile = false;
-  String _fileResponse = '';
+  // Eliminado: selección de archivos en pantalla principal
 
-  List<Map<String, dynamic>> _chatGeneral = [];
-  bool _showChatGeneral = false;
+  // Eliminado: chat general en pantalla principal
 
   // Casos y selección
   List<Caso> _casos = [];
@@ -47,9 +37,12 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
   bool _isLoadingCasos = false;
 
   int get _countTotal => _casos.length;
-  int get _countPendientes => _casos.where((c) => c.estadoCaso.toLowerCase() == 'pendiente').length;
-  int get _countAnalizando => _casos.where((c) => c.estadoCaso.toLowerCase() == 'analizando').length;
-  int get _countFinalizados => _casos.where((c) => c.estadoCaso.toLowerCase() == 'finalizado').length;
+  int get _countPendientes =>
+      _casos.where((c) => c.estadoCaso.toLowerCase() == 'pendiente').length;
+  int get _countAnalizando =>
+      _casos.where((c) => c.estadoCaso.toLowerCase() == 'analizando').length;
+  int get _countFinalizados =>
+      _casos.where((c) => c.estadoCaso.toLowerCase() == 'finalizado').length;
 
   @override
   void initState() {
@@ -58,53 +51,29 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
   }
 
   Future<void> _loadUserProfile() async {
-    final profile = await _webhookService.getUserProfile();
-    setState(() {
-      _userProfile = profile;
-    });
-
-    if (profile != null) {
-      await _loadCasos();
-    }
+    await _loadCasos();
   }
 
-  Future<void> _loadChatHistory() async {
-    if (_userProfile?['telefono'] != null) {
-      final history = await _webhookService.getChatHistory(
-        _userProfile!['telefono'],
-      );
-      setState(() {
-        _chatHistory = history;
-      });
-    }
-  }
+  // Eliminado: historial en pantalla de detalle
 
-  Future<void> _loadChatGeneral() async {
-    if (_selectedCasoId != null) {
-      final general = await _dataService.getChatGeneralByCaso(_selectedCasoId!);
-      setState(() {
-        _chatGeneral = general;
-      });
-    } else {
-      setState(() {
-        _chatGeneral = [];
-      });
-    }
-  }
+  // Eliminado: chat general en pantalla principal
 
   Future<void> _loadCasos() async {
     setState(() => _isLoadingCasos = true);
     final perfil = await _dataService.getCurrentPerfil();
     if (perfil == null) return;
-    final casos = await _dataService.listarCasosPorUsuario(perfil.id, filtroNombre: _searchCaso);
+    final casos = await _dataService.listarCasosPorUsuario(
+      perfil.id,
+      filtroNombre: _searchCaso,
+    );
     setState(() {
       _casos = casos;
-      if (_selectedCasoId != null && !_casos.any((c) => c.id == _selectedCasoId)) {
+      if (_selectedCasoId != null &&
+          !_casos.any((c) => c.id == _selectedCasoId)) {
         _selectedCasoId = null;
       }
       _isLoadingCasos = false;
     });
-    await _loadChatGeneral();
   }
 
   Color _statusBorder(String estado) {
@@ -124,7 +93,11 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
     return base.withOpacity(0.12);
   }
 
-  Widget _resumeTile({required String title, required int count, required Color color}) {
+  Widget _resumeTile({
+    required String title,
+    required int count,
+    required Color color,
+  }) {
     return Container(
       width: 140,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
@@ -136,27 +109,49 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('$count', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
+          Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: color))
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: color),
+          ),
         ],
       ),
     );
   }
 
   Future<void> _editarCaso(Caso caso) async {
-    final TextEditingController ctrl = TextEditingController(text: caso.nombreCaso);
+    final TextEditingController ctrl = TextEditingController(
+      text: caso.nombreCaso,
+    );
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Editar nombre del caso'),
-        content: TextField(controller: ctrl, decoration: const InputDecoration(labelText: 'Nombre del caso')),
+        content: TextField(
+          controller: ctrl,
+          decoration: const InputDecoration(labelText: 'Nombre del caso'),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
           ElevatedButton(
             onPressed: () async {
               if (ctrl.text.trim().isEmpty) return;
-              await _dataService.actualizarCaso(idCaso: caso.id, nombre: ctrl.text.trim());
+              await _dataService.actualizarCaso(
+                idCaso: caso.id,
+                nombre: ctrl.text.trim(),
+              );
               Navigator.pop(ctx);
               await _loadCasos();
             },
@@ -176,15 +171,23 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
         title: const Text('Reasignar doctor'),
         content: DropdownButtonFormField<int>(
           value: doctorId,
-          items: doctores.map((d) => DropdownMenuItem(value: d.id, child: Text(d.nombre))).toList(),
+          items: doctores
+              .map((d) => DropdownMenuItem(value: d.id, child: Text(d.nombre)))
+              .toList(),
           onChanged: (v) => doctorId = v,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
           ElevatedButton(
             onPressed: () async {
               if (doctorId == null) return;
-              await _dataService.actualizarCaso(idCaso: caso.id, idDoctor: doctorId);
+              await _dataService.actualizarCaso(
+                idCaso: caso.id,
+                idDoctor: doctorId,
+              );
               Navigator.pop(ctx);
               await _loadCasos();
             },
@@ -202,8 +205,14 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
         title: const Text('Eliminar caso'),
         content: const Text('¿Deseas eliminar este caso?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Eliminar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar'),
+          ),
         ],
       ),
     );
@@ -217,18 +226,45 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
     return GestureDetector(
       onTap: () {
         Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => UserCaseDetailScreen(idCaso: caso.id)),
+          MaterialPageRoute(
+            builder: (_) => UserCaseDetailScreen(idCaso: caso.id),
+          ),
         );
       },
       onLongPress: () async {
         await showModalBottomSheet(
           context: context,
           builder: (ctx) => SafeArea(
-            child: Wrap(children: [
-              ListTile(leading: const Icon(Icons.edit), title: const Text('Editar nombre'), onTap: () { Navigator.pop(ctx); _editarCaso(caso); }),
-              ListTile(leading: const Icon(Icons.person_search), title: const Text('Reasignar doctor'), onTap: () { Navigator.pop(ctx); _reasignarDoctor(caso); }),
-              ListTile(leading: const Icon(Icons.delete), title: const Text('Eliminar'), textColor: Colors.red, iconColor: Colors.red, onTap: () { Navigator.pop(ctx); _eliminarCaso(caso); }),
-            ]),
+            child: Wrap(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.edit),
+                  title: const Text('Editar nombre'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _editarCaso(caso);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.person_search),
+                  title: const Text('Reasignar doctor'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _reasignarDoctor(caso);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.delete),
+                  title: const Text('Eliminar'),
+                  textColor: Colors.red,
+                  iconColor: Colors.red,
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _eliminarCaso(caso);
+                  },
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -236,7 +272,9 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: _statusFill(caso.estadoCaso),
-          border: Border.all(color: _statusBorder(caso.estadoCaso).withOpacity(0.35)),
+          border: Border.all(
+            color: _statusBorder(caso.estadoCaso).withOpacity(0.35),
+          ),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -250,166 +288,50 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
               ),
               child: Text(
                 caso.estadoCaso.toUpperCase(),
-                style: TextStyle(color: _statusBorder(caso.estadoCaso), fontWeight: FontWeight.bold, fontSize: 11),
+                style: TextStyle(
+                  color: _statusBorder(caso.estadoCaso),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                ),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(caso.nombreCaso, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 4),
-                Text('ID #${caso.id} • Doctor: ${caso.idDoctor}', style: TextStyle(color: Colors.grey[700], fontSize: 12)),
-              ]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    caso.nombreCaso,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'ID #${caso.id} • Doctor: ${caso.idDoctor}',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                  ),
+                ],
+              ),
             ),
-            if (_selectedCasoId == caso.id) Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary),
+            if (_selectedCasoId == caso.id)
+              Icon(
+                Icons.check_circle,
+                color: Theme.of(context).colorScheme.primary,
+              ),
           ],
         ),
       ),
     );
   }
 
-  Future<void> _sendMessage() async {
-    if (_messageController.text.trim().isEmpty) return;
-    if (_selectedCasoId == null) {
-      setState(() {
-        _response = 'Seleccione o cree un caso para continuar.';
-      });
-      return;
-    }
-    setState(() {
-      _isLoading = true;
-      _response = '';
-    });
+  // Eliminado: envío de mensajes en pantalla principal
 
-    final userMessage = _messageController.text;
-    final telefono = _userProfile?['telefono'] ?? '';
-    try {
-      // Guardar mensaje enviado (user) en chat_general por id_caso
-      await _webhookService.insertChatGeneralUser(
-        message: userMessage,
-        idCaso: _selectedCasoId!,
-      );
+  // Eliminado: selección de archivos en pantalla principal
 
-      final result = await _webhookService.sendMessage(
-        message: userMessage,
-        email: _userProfile?['email'] ?? '',
-        telefono: telefono,
-        idCaso: _selectedCasoId,
-      );
-      setState(() {
-        _response = result['success']
-            ? 'Mensaje enviado exitosamente!\nRespuesta: ${result['response']}'
-            : 'Error: ${result['error'] ?? result['response']}';
-        _isLoading = false;
-      });
+  // Eliminado: subida de archivos en pantalla principal
 
-      if (result['success']) {
-        _messageController.clear();
-        // Guardar respuesta IA si existe
-        final iaResponseBody = result['response']; // Puede ser JSON o texto
-        // Si es JSON parsea y saca texto de la IA (ajustar según webhook!)
-        String iaText = '';
-        try {
-          final decoded = json.decode(iaResponseBody);
-          iaText = decoded['ia_response'] ?? decoded['response'] ?? '';
-          if (iaText.isEmpty && decoded is Map) iaText = (decoded['message'] ?? '').toString();
-        } catch (_) {
-          iaText = iaResponseBody.toString();
-        }
-        if (iaText.trim().isNotEmpty) {
-          await _webhookService.insertChatGeneralIA(
-            message: iaText,
-            idCaso: _selectedCasoId!,
-          );
-        }
-
-        // Recargar historiales
-        await _loadChatGeneral();
-      }
-    } catch (e) {
-      setState(() {
-        _response = 'Error: $e';
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _selectFile() async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf', 'doc', 'docx'],
-      );
-
-      if (result != null) {
-        setState(() {
-          _selectedFile = File(result.files.single.path!);
-          _fileResponse = '';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _fileResponse = 'Error al seleccionar archivo: $e';
-      });
-    }
-  }
-
-  Future<void> _uploadFile() async {
-    if (_selectedFile == null) {
-      setState(() {
-        _fileResponse = 'Por favor selecciona un archivo primero';
-      });
-      return;
-    }
-    if (_selectedCasoId == null) {
-      setState(() {
-        _fileResponse = 'Seleccione o cree un caso antes de subir archivos';
-      });
-      return;
-    }
-
-    setState(() {
-      _isUploadingFile = true;
-      _fileResponse = '';
-    });
-
-    try {
-      final result = await _webhookService.uploadFile(
-        file: _selectedFile!,
-        email: _userProfile?['email'] ?? '',
-        telefono: _userProfile?['telefono'] ?? '',
-        idCaso: _selectedCasoId,
-      );
-
-      setState(() {
-        _fileResponse = result['success']
-            ? 'Archivo subido exitosamente!\nRespuesta: ${result['response']}'
-            : 'Error: ${result['error'] ?? result['response']}';
-        _isUploadingFile = false;
-      });
-
-      if (result['success']) {
-        setState(() {
-          _selectedFile = null;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _fileResponse = 'Error: $e';
-        _isUploadingFile = false;
-      });
-    }
-  }
-
-  String _formatDate(String? dateString) {
-    if (dateString == null) return 'Fecha no disponible';
-    try {
-      final date = DateTime.parse(dateString);
-      return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
-    } catch (e) {
-      return 'Fecha no válida';
-    }
-  }
+  // Eliminado: formateo de fecha solo usado en histórico
 
   Future<void> _signOut() async {
     await SoundHelper.playSelectSound();
@@ -441,20 +363,26 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
               DropdownButtonFormField<Perfil>(
                 decoration: const InputDecoration(labelText: 'Doctor'),
                 items: doctores
-                    .map((d) => DropdownMenuItem<Perfil>(
-                          value: d,
-                          child: Text(d.nombre),
-                        ))
+                    .map(
+                      (d) => DropdownMenuItem<Perfil>(
+                        value: d,
+                        child: Text(d.nombre),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) => selectedDoctor = v,
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancelar')),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancelar'),
+            ),
             ElevatedButton(
               onPressed: () async {
-                if (nombreCtrl.text.trim().isEmpty || selectedDoctor == null) return;
+                if (nombreCtrl.text.trim().isEmpty || selectedDoctor == null)
+                  return;
                 final nuevo = await _dataService.crearCaso(
                   idUsuario: perfil.id,
                   idDoctor: selectedDoctor!.id,
@@ -522,20 +450,42 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Center(
-                        child: Text('Resumen de Casos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        child: Text(
+                          'Resumen de Casos',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           children: [
-                            _resumeTile(title: 'Casos\nTotales', count: _countTotal, color: Colors.green),
+                            _resumeTile(
+                              title: 'Casos\nTotales',
+                              count: _countTotal,
+                              color: Colors.green,
+                            ),
                             const SizedBox(width: 8),
-                            _resumeTile(title: 'Pendientes', count: _countPendientes, color: Colors.orange),
+                            _resumeTile(
+                              title: 'Pendientes',
+                              count: _countPendientes,
+                              color: Colors.orange,
+                            ),
                             const SizedBox(width: 8),
-                            _resumeTile(title: 'En Proceso', count: _countAnalizando, color: Colors.blue),
+                            _resumeTile(
+                              title: 'En Proceso',
+                              count: _countAnalizando,
+                              color: Colors.blue,
+                            ),
                             const SizedBox(width: 8),
-                            _resumeTile(title: 'Finalizados', count: _countFinalizados, color: Colors.green),
+                            _resumeTile(
+                              title: 'Finalizados',
+                              count: _countFinalizados,
+                              color: Colors.green,
+                            ),
                           ],
                         ),
                       ),
@@ -547,14 +497,15 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
                               value: _selectedCasoId,
                               hint: const Text('Seleccionar caso'),
                               items: _casos
-                                  .map((c) => DropdownMenuItem<int>(
-                                        value: c.id,
-                                        child: Text(c.nombreCaso),
-                                      ))
+                                  .map(
+                                    (c) => DropdownMenuItem<int>(
+                                      value: c.id,
+                                      child: Text(c.nombreCaso),
+                                    ),
+                                  )
                                   .toList(),
                               onChanged: (v) async {
                                 setState(() => _selectedCasoId = v);
-                                await _loadChatGeneral();
                               },
                             ),
                           ),
@@ -579,7 +530,12 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
                       ),
                       const SizedBox(height: 12),
                       if (_isLoadingCasos)
-                        const Center(child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator()))
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(12),
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
                       else ...[
                         for (final c in _casos) ...[
                           const SizedBox(height: 8),
@@ -592,690 +548,28 @@ class _UsuarioAppScreenState extends State<UsuarioAppScreen> {
                               color: Colors.grey[100],
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text('No hay casos. Crea tu primer caso.'),
+                            child: const Text(
+                              'No hay casos. Crea tu primer caso.',
+                            ),
                           ),
                       ],
                     ],
                   ),
                 ),
 
-                // Sección de Chat con n8n
-                Container(
-                  padding: EdgeInsets.all(24),
-                  margin: EdgeInsets.symmetric(horizontal: 16),
-                  decoration: p3PanelDecoration(context),
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: P3DiagonalPattern(
-                          spacing: 20,
-                          strokeWidth: 1.2,
-                          opacity: 0.05,
-                        ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.chat,
-                                color: Theme.of(context).colorScheme.secondary,
-                                size: 24,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Chat con Asistente',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 16),
-                          TextField(
-                            controller: _messageController,
-                            decoration: InputDecoration(
-                              labelText: 'Escribe tu mensaje',
-                              hintText: 'Escribe aquí tu consulta...',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              prefixIcon: Icon(Icons.message),
-                            ),
-                            maxLines: 3,
-                          ),
-                          SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _isLoading ? null : _sendMessage,
-                              icon: _isLoading
-                                  ? SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              Colors.white,
-                                            ),
-                                      ),
-                                    )
-                                  : Icon(Icons.send),
-                              label: Text(
-                                _isLoading ? 'Enviando...' : 'Enviar Mensaje',
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(
-                                  context,
-                                ).colorScheme.primary,
-                                foregroundColor: Theme.of(
-                                  context,
-                                ).colorScheme.onPrimary,
-                                padding: EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (_response.isNotEmpty) ...[
-                            SizedBox(height: 16),
-                            Container(
-                              width: double.infinity,
-                              padding: EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: _response.contains('Error')
-                                    ? Colors.red.withOpacity(0.08)
-                                    : Theme.of(
-                                        context,
-                                      ).colorScheme.tertiary.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: _response.contains('Error')
-                                      ? Colors.red.withOpacity(0.25)
-                                      : Theme.of(
-                                          context,
-                                        ).colorScheme.tertiary.withOpacity(0.3),
-                                ),
-                              ),
-                              child: Text(
-                                _response,
-                                style: TextStyle(
-                                  color: _response.contains('Error')
-                                      ? Colors.red[700]
-                                      : Theme.of(context).colorScheme.primary,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                SizedBox(height: 0),
 
-                SizedBox(height: 24),
+                SizedBox(height: 0),
 
-                // Sección de Subida de Archivos
-                Container(
-                  padding: EdgeInsets.all(24),
-                  margin: EdgeInsets.symmetric(horizontal: 16),
-                  decoration: p3PanelDecoration(context),
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: P3DiagonalPattern(
-                          spacing: 20,
-                          strokeWidth: 1.2,
-                          opacity: 0.05,
-                        ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.upload_file,
-                                color: Theme.of(context).colorScheme.tertiary,
-                                size: 24,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Subir Archivos',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'Selecciona un archivo PDF o Word para enviar:',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: _selectFile,
-                                  icon: Icon(Icons.folder_open),
-                                  label: Text('Seleccionar Archivo'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Theme.of(
-                                      context,
-                                    ).colorScheme.secondary,
-                                    foregroundColor: Theme.of(
-                                      context,
-                                    ).colorScheme.onSecondary,
-                                    padding: EdgeInsets.symmetric(vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: _isUploadingFile
-                                      ? null
-                                      : _uploadFile,
-                                  icon: _isUploadingFile
-                                      ? SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                  Colors.white,
-                                                ),
-                                          ),
-                                        )
-                                      : Icon(Icons.upload),
-                                  label: Text(
-                                    _isUploadingFile ? 'Subiendo...' : 'Subir',
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                    foregroundColor: Theme.of(
-                                      context,
-                                    ).colorScheme.onPrimary,
-                                    padding: EdgeInsets.symmetric(vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (_selectedFile != null) ...[
-                            SizedBox(height: 12),
-                            Container(
-                              padding: EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.tertiary.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.tertiary.withOpacity(0.35),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.description,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      _selectedFile!.path.split('/').last,
-                                      style: TextStyle(fontSize: 14),
-                                    ),
-                                  ),
-                                  IconButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _selectedFile = null;
-                                        _fileResponse = '';
-                                      });
-                                    },
-                                    icon: Icon(Icons.close, color: Colors.red),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                          if (_fileResponse.isNotEmpty) ...[
-                            SizedBox(height: 16),
-                            Container(
-                              width: double.infinity,
-                              padding: EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: _fileResponse.contains('Error')
-                                    ? Colors.red.withOpacity(0.08)
-                                    : Theme.of(
-                                        context,
-                                      ).colorScheme.tertiary.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: _fileResponse.contains('Error')
-                                      ? Colors.red.withOpacity(0.25)
-                                      : Theme.of(
-                                          context,
-                                        ).colorScheme.tertiary.withOpacity(0.3),
-                                ),
-                              ),
-                              child: Text(
-                                _fileResponse,
-                                style: TextStyle(
-                                  color: _fileResponse.contains('Error')
-                                      ? Colors.red[700]
-                                      : Theme.of(context).colorScheme.primary,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                SizedBox(height: 24),
-
-                // Sección de Historial de Mensajes
-                Container(
-                  padding: EdgeInsets.all(24),
-                  margin: EdgeInsets.symmetric(horizontal: 16),
-                  decoration: p3PanelDecoration(context),
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: P3DiagonalPattern(
-                          spacing: 20,
-                          strokeWidth: 1.2,
-                          opacity: 0.05,
-                        ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.history,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.secondary,
-                                    size: 24,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Historial de Mensajes',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                children: [
-                                  IconButton(
-                                    tooltip: 'Actualizar',
-                                    onPressed: _loadChatHistory,
-                                    icon: Icon(Icons.refresh),
-                                  ),
-                                  TextButton.icon(
-                                    onPressed: () {
-                                      setState(() {
-                                        _showHistory = !_showHistory;
-                                      });
-                                    },
-                                    icon: Icon(
-                                      _showHistory
-                                          ? Icons.expand_less
-                                          : Icons.expand_more,
-                                    ),
-                                    label: Text(
-                                      _showHistory ? 'Ocultar' : 'Ver',
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          if (_showHistory) ...[
-                            SizedBox(height: 16),
-                            if (_chatHistory.isEmpty)
-                              Container(
-                                padding: EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[100],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  'No hay mensajes en el historial',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                ),
-                              )
-                            else
-                              Container(
-                                height: 200,
-                                child: ListView.builder(
-                                  itemCount: _chatHistory.length,
-                                  itemBuilder: (context, index) {
-                                    final message = _chatHistory[index];
-                                    final String type = (message['type'] ?? '')
-                                        .toString()
-                                        .toLowerCase();
-                                    final bool isAi = type == 'ai';
-                                    final bg = isAi
-                                        ? Theme.of(context).colorScheme.primary
-                                              .withOpacity(0.12)
-                                        : Theme.of(context).colorScheme.tertiary
-                                              .withOpacity(0.12);
-                                    final border = isAi
-                                        ? Theme.of(context).colorScheme.primary
-                                              .withOpacity(0.35)
-                                        : Theme.of(context).colorScheme.tertiary
-                                              .withOpacity(0.35);
-                                    return Container(
-                                      margin: EdgeInsets.only(bottom: 8),
-                                      padding: EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: bg,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: border),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            isAi ? 'IA' : 'Tú',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
-                                            ),
-                                          ),
-                                          SizedBox(height: 4),
-                                          Text(
-                                            message['message'] ?? '',
-                                            style: TextStyle(fontSize: 14),
-                                          ),
-                                          if ((message['created_at'] ?? '')
-                                              .toString()
-                                              .isNotEmpty) ...[
-                                            SizedBox(height: 4),
-                                            Text(
-                                              'Enviado: ${_formatDate(message['created_at'])}',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey[600],
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                          ],
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                SizedBox(height: 0),
 
                 SizedBox(height: 32),
-                // Historial Chat General
-                Container(
-                  padding: EdgeInsets.all(24),
-                  margin: EdgeInsets.symmetric(horizontal: 16),
-                  decoration: p3PanelDecoration(context),
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: P3DiagonalPattern(
-                          spacing: 20,
-                          strokeWidth: 1.2,
-                          opacity: 0.05,
-                        ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.forum,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Chat general',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                children: [
-                                  IconButton(
-                                    tooltip: 'Actualizar',
-                                    onPressed: _loadChatGeneral,
-                                    icon: Icon(Icons.refresh),
-                                  ),
-                                  TextButton.icon(
-                                    onPressed: () {
-                                      setState(() {
-                                        _showChatGeneral = !_showChatGeneral;
-                                      });
-                                    },
-                                    icon: Icon(
-                                      _showChatGeneral
-                                          ? Icons.expand_less
-                                          : Icons.expand_more,
-                                    ),
-                                    label: Text(
-                                      _showChatGeneral ? 'Ocultar' : 'Ver',
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          if (_showChatGeneral) ...[
-                            SizedBox(height: 16),
-                            if (_chatGeneral.isEmpty)
-                              Container(
-                                padding: EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[100],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  'No hay mensajes en el chat general',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                ),
-                              )
-                            else
-                              Container(
-                                height: 200,
-                                child: ListView.builder(
-                                  itemCount: _chatGeneral.length,
-                                  itemBuilder: (context, idx) {
-                                    final m = _chatGeneral[idx];
-                                    final isAI =
-                                        (m['type']?.toString().toLowerCase() ==
-                                        'ia');
-                                    return Container(
-                                      margin: EdgeInsets.only(bottom: 8),
-                                      padding: EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: isAI
-                                            ? Theme.of(context)
-                                                  .colorScheme
-                                                  .primary
-                                                  .withOpacity(0.12)
-                                            : Theme.of(context)
-                                                  .colorScheme
-                                                  .tertiary
-                                                  .withOpacity(0.12),
-                                        border: Border.all(
-                                          color: isAI
-                                              ? Theme.of(context)
-                                                    .colorScheme
-                                                    .primary
-                                                    .withOpacity(0.35)
-                                              : Theme.of(context)
-                                                    .colorScheme
-                                                    .tertiary
-                                                    .withOpacity(0.35),
-                                        ),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            isAI ? 'IA' : 'Tú',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          SizedBox(height: 4),
-                                          Text(
-                                            (m['message'] ?? '').toString(),
-                                            style: TextStyle(fontSize: 14),
-                                          ),
-                                          if ((m['created_at'] ?? '')
-                                              .toString()
-                                              .isNotEmpty) ...[
-                                            SizedBox(height: 4),
-                                            Text(
-                                              'Fecha: ' +
-                                                  (m['created_at'] ?? ''),
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey[600],
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                          ],
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                // Historial Chat General (eliminado visual, ahora en detalle)
+                SizedBox(height: 0),
 
                 SizedBox(height: 24),
 
-                // Funcionalidades disponibles
-                Container(
-                  padding: EdgeInsets.all(24),
-                  margin: EdgeInsets.symmetric(horizontal: 16),
-                  decoration: p3PanelDecoration(context),
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: P3DiagonalPattern(
-                          spacing: 20,
-                          strokeWidth: 1.2,
-                          opacity: 0.05,
-                        ),
-                      ),
-                      Column(
-                        children: [
-                          Text(
-                            'Funcionalidades disponibles:',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                          SizedBox(height: 16),
-                          ListTile(
-                            leading: Icon(
-                              Icons.medical_services,
-                              color: Theme.of(context).colorScheme.secondary,
-                            ),
-                            title: Text('Consultar citas médicas'),
-                          ),
-                          ListTile(
-                            leading: Icon(
-                              Icons.person,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            title: Text('Ver perfil personal'),
-                          ),
-                          ListTile(
-                            leading: Icon(
-                              Icons.history,
-                              color: Theme.of(context).colorScheme.secondary,
-                            ),
-                            title: Text('Historial médico'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                SizedBox(height: 40),
+                SizedBox(height: 24),
               ],
             ),
           ),

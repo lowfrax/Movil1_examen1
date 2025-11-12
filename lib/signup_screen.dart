@@ -12,6 +12,7 @@ import 'package:medinova/widgets/persona_text_field.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:medinova/p3_theme.dart';
 import 'package:medinova/widgets/p3_pattern.dart';
+import 'package:medinova/stripe/payment_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -145,6 +146,54 @@ class _SignupScreenState extends State<SignupScreen> {
         return;
       }
 
+      // Navegar a la pantalla de pago
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        final paymentResult = await Navigator.push<bool>(
+          context,
+          CustomPageRoute(
+            child: PaymentScreen(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+              name: _nameController.text.trim(),
+              phone: _phoneController.text.trim(),
+              countryCode: _selectedCountryCode,
+              selectedRole: _selectedRole!,
+            ),
+            transitionType: 'slideDiagonal',
+            duration: Duration(milliseconds: 400),
+          ),
+        );
+
+        // Si el pago fue exitoso, crear el usuario
+        if (paymentResult == true && mounted) {
+          await _createUser(fullPhoneNumber);
+        }
+      }
+    } on Exception catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _createUser(String fullPhoneNumber) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
       final response = await supabase.auth.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
@@ -169,7 +218,15 @@ class _SignupScreenState extends State<SignupScreen> {
           );
         } catch (e) {
           print('Error insertando en perfil: $e');
-          // no interrumpimos el flujo de signup por fallo en insert, pero podrías manejarlo aquí
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error al crear el perfil: $e'),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+          }
+          return;
         }
 
         if (response.session != null) {
@@ -190,7 +247,7 @@ class _SignupScreenState extends State<SignupScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString()),
+            content: Text('Error al crear el usuario: ${e.toString()}'),
             backgroundColor: Colors.redAccent,
           ),
         );

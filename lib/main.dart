@@ -9,6 +9,8 @@ import 'package:medinova/custom_transitions.dart';
 import 'package:medinova/app_lifecycle_manager.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:medinova/p3_theme.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:medinova/stripe/stripe_key_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +20,15 @@ Future<void> main() async {
     anonKey:
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZrZ3BkaHFoc2psc2p1YW95dWhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwODkxNjQsImV4cCI6MjA3NjY2NTE2NH0.I33WxY1dadN6iRJZJv0kgdTB2daFoLoUSdjQreS4gxk',
   );
+
+  // Inicializar Stripe con la clave pública desde Supabase
+  try {
+    final publicKey = await StripeKeyService.getPublicKey();
+    Stripe.publishableKey = publicKey;
+  } catch (e) {
+    print('Error al inicializar Stripe: $e');
+    // Continuar sin Stripe si hay error (para desarrollo)
+  }
 
   runApp(MyApp());
 }

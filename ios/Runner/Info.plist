@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Esta aplicación necesita acceso al micrófono para convertir tu voz a texto en las consultas.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Esta aplicación necesita acceso al reconocimiento de voz para convertir tu audio a texto.</string>
 </dict>
 </plist>

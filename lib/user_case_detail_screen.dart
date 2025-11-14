@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:permission_handler/permission_handler.dart';
 // import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'models/medicamento.dart';
@@ -36,10 +38,63 @@ class _UserCaseDetailScreenState extends State<UserCaseDetailScreen> {
   bool _uploading = false;
   String _fileResponse = '';
 
+  // Reconocimiento de voz
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+  String _recognizedText = '';
+  bool _speechAvailable = false;
+
   @override
   void initState() {
     super.initState();
+    _speech = stt.SpeechToText();
+    _initializeSpeech();
     _loadAll();
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    if (_isListening) {
+      _speech.stop();
+    }
+    super.dispose();
+  }
+
+  Future<void> _initializeSpeech() async {
+    try {
+      final available = await _speech.initialize(
+        onStatus: (status) {
+          if (mounted) {
+            setState(() {
+              if (status == 'done' || status == 'notListening') {
+                _isListening = false;
+              }
+            });
+          }
+        },
+        onError: (error) {
+          if (mounted) {
+            setState(() {
+              _isListening = false;
+              _response = 'Error de reconocimiento: ${error.errorMsg}';
+            });
+          }
+        },
+      );
+      if (mounted) {
+        setState(() {
+          _speechAvailable = available;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _speechAvailable = false;
+          _response = 'Error al inicializar reconocimiento de voz: $e';
+        });
+      }
+    }
   }
 
   Future<void> _loadAll() async {
@@ -129,6 +184,85 @@ class _UserCaseDetailScreenState extends State<UserCaseDetailScreen> {
     }
   }
 
+  Future<bool> _requestMicrophonePermission() async {
+    final status = await Permission.microphone.request();
+    if (status.isDenied || status.isPermanentlyDenied) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Se necesita permiso de micrófono para usar esta función'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return false;
+    }
+    return status.isGranted;
+  }
+
+  Future<void> _startListening() async {
+    if (!_speechAvailable) {
+      setState(() => _response = 'Reconocimiento de voz no disponible');
+      return;
+    }
+
+    // Solicitar permiso de micrófono
+    final hasPermission = await _requestMicrophonePermission();
+    if (!hasPermission) {
+      return;
+    }
+
+    setState(() {
+      _isListening = true;
+      _recognizedText = '';
+      _response = 'Escuchando...';
+    });
+
+    try {
+      await _speech.listen(
+        onResult: (result) {
+          setState(() {
+            _recognizedText = result.recognizedWords;
+            // Actualizar el campo de texto mientras se escucha
+            if (_recognizedText.isNotEmpty) {
+              _messageController.text = _recognizedText;
+            }
+            if (result.finalResult) {
+              // Cuando se finaliza, poner el texto en el campo de mensaje
+              _messageController.text = _recognizedText;
+              _isListening = false;
+              _response = 'Transcripción completada';
+            }
+          });
+        },
+        localeId: 'es_ES', // Español
+        listenMode: stt.ListenMode.dictation, // Modo dictado para reconocimiento continuo
+        cancelOnError: false,
+        partialResults: true, // Obtener resultados parciales mientras se habla
+      );
+    } catch (e) {
+      setState(() {
+        _isListening = false;
+        _response = 'Error al iniciar grabación: $e';
+      });
+    }
+  }
+
+  Future<void> _stopListening() async {
+    if (_isListening) {
+      await _speech.stop();
+      setState(() {
+        _isListening = false;
+        if (_recognizedText.isNotEmpty) {
+          _messageController.text = _recognizedText;
+          _response = 'Transcripción completada';
+        } else {
+          _response = 'Grabación cancelada';
+        }
+      });
+    }
+  }
+
   Widget _badge(String text, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -207,13 +341,51 @@ class _UserCaseDetailScreenState extends State<UserCaseDetailScreen> {
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       const Text('Chat con Asistente', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       const SizedBox(height: 12),
-                      TextField(controller: _messageController, minLines: 1, maxLines: 3, decoration: const InputDecoration(prefixIcon: Icon(Icons.message), hintText: 'Escribe tu mensaje ...')),
+                      Row(children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _messageController,
+                            minLines: 1,
+                            maxLines: 3,
+                            decoration: InputDecoration(
+                              prefixIcon: const Icon(Icons.message),
+                              hintText: _isListening ? 'Escuchando...' : 'Escribe tu mensaje ...',
+                              suffixIcon: _isListening
+                                  ? IconButton(
+                                      icon: const Icon(Icons.stop, color: Colors.red),
+                                      onPressed: _stopListening,
+                                      tooltip: 'Detener grabación',
+                                    )
+                                  : IconButton(
+                                      icon: Icon(Icons.mic, color: _speechAvailable ? Colors.blue : Colors.grey),
+                                      onPressed: _speechAvailable && !_sending ? _startListening : null,
+                                      tooltip: 'Iniciar reconocimiento de voz',
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ]),
                       const SizedBox(height: 12),
                       Row(children: [
-                        ElevatedButton.icon(onPressed: _sending ? null : _sendMessage, icon: _sending ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.send), label: Text(_sending ? 'Enviando...' : 'Enviar')),
+                        ElevatedButton.icon(
+                          onPressed: _sending || _isListening ? null : _sendMessage,
+                          icon: _sending
+                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const Icon(Icons.send),
+                          label: Text(_sending ? 'Enviando...' : 'Enviar'),
+                        ),
                         const SizedBox(width: 12),
                         if (_response.isNotEmpty) Expanded(child: Text(_response)),
                       ]),
+                      if (_isListening)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Row(children: [
+                            const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text('Diciendo: $_recognizedText', style: const TextStyle(fontStyle: FontStyle.italic))),
+                          ]),
+                        ),
                     ]),
                   ),
                   const SizedBox(height: 16),

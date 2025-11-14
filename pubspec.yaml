@@ -40,6 +40,7 @@ dependencies:
   path: ^1.8.3
   file_picker: ^8.0.0+1
   flutter_stripe: ^12.1.0
+  flutter_paypal_payment: ^1.0.8
   speech_to_text: ^7.0.0
   permission_handler: ^11.3.0
 

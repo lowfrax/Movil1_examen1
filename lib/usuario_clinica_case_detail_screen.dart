@@ -12,6 +12,7 @@ import 'models/medicamento.dart';
 import 'services/supabase_data_service.dart';
 import 'services/webhook_service.dart';
 import 'services/ble_controller.dart';
+import 'widgets/camera_pulse_detector.dart';
 import 'p3_theme.dart';
 
 class UsuarioClinicaCaseDetailScreen extends StatefulWidget {
@@ -447,6 +448,20 @@ class _UsuarioClinicaCaseDetailScreenState extends State<UsuarioClinicaCaseDetai
     );
   }
 
+  Future<void> _showCameraPulseDialog() async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => CameraPulseDetector(
+        casoId: widget.idCaso,
+        onPulseSaved: (pulseValue) {
+          // El widget ya guarda en la base de datos, solo mostramos confirmación
+          print('Pulso guardado desde cámara: $pulseValue');
+        },
+      ),
+    );
+  }
+
   Widget _badge(String text, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -569,6 +584,30 @@ class _UsuarioClinicaCaseDetailScreenState extends State<UsuarioClinicaCaseDetai
                           icon: const Icon(Icons.bluetooth),
                           label: const Text('Emparejar con ESP32'),
                         ),
+                    ]),
+                  ),
+                  const SizedBox(height: 16),
+                  // Botón para medir pulso con cámara
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: p3PanelDecoration(context),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Text('Medir Pulso con Cámara', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        onPressed: _showCameraPulseDialog,
+                        icon: const Icon(Icons.camera_alt),
+                        label: const Text('Medir Pulso con Cámara'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Coloca tu dedo sobre la cámara y el flash. La app medirá tu pulso automáticamente.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
                     ]),
                   ),
                   const SizedBox(height: 16),

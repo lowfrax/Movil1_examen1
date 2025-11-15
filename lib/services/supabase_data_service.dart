@@ -122,6 +122,14 @@ class SupabaseDataService {
   Future<void> eliminarMedicamento(int idMedicamento) async {
     await _supabase.from('medicamentos').delete().eq('id', idMedicamento);
   }
+
+  // Método para insertar datos de pulso del ESP32
+  Future<void> insertarPulsoESP32({required int casoId, required int pulso}) async {
+    await _supabase.from('esp32').insert({
+      'caso_id': casoId,
+      'pulso': pulso,
+    });
+  }
 }
 
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:medinova/sound_helper.dart';
 import 'package:medinova/music_control_widget.dart';
@@ -9,9 +10,10 @@ import 'package:medinova/p3_theme.dart';
 // import 'package:medinova/widgets/p3_pattern.dart';
 // import 'dart:convert';
 import 'models/caso.dart';
-// import 'models/perfil.dart';
+import 'models/perfil.dart';
 // import 'models/medicamento.dart';
 import 'services/supabase_data_service.dart';
+import 'usuario_clinica_case_detail_screen.dart';
 
 class UsuarioClinicaScreen extends StatefulWidget {
   const UsuarioClinicaScreen({super.key});
@@ -102,9 +104,12 @@ class _UsuarioClinicaScreenState extends State<UsuarioClinicaScreen> {
 
   Widget _buildCasoCard(Caso caso) {
     return GestureDetector(
-      onTap: () async {
-        setState(() => _selectedCasoId = caso.id);
-        // eliminado: chat general
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => UsuarioClinicaCaseDetailScreen(idCaso: caso.id),
+          ),
+        );
       },
       child: Container(
         padding: const EdgeInsets.all(14),
@@ -145,6 +150,66 @@ class _UsuarioClinicaScreenState extends State<UsuarioClinicaScreen> {
   // Eliminado: envío de mensajes
 
   // Eliminado: formato de fecha
+
+  Future<void> _crearCasoDialog() async {
+    final perfil = await _dataService.getCurrentPerfil();
+    if (perfil == null) return;
+    final doctores = await _dataService.getDoctores();
+    final TextEditingController nombreCtrl = TextEditingController();
+    Perfil? selectedDoctor;
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Nuevo caso'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nombreCtrl,
+                decoration: const InputDecoration(labelText: 'Nombre del caso'),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<Perfil>(
+                decoration: const InputDecoration(labelText: 'Doctor'),
+                items: doctores
+                    .map(
+                      (d) => DropdownMenuItem<Perfil>(
+                            value: d,
+                            child: Text(d.nombre),
+                          ),
+                    )
+                    .toList(),
+                onChanged: (v) => selectedDoctor = v,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (nombreCtrl.text.trim().isEmpty || selectedDoctor == null) return;
+                final nuevo = await _dataService.crearCaso(
+                  idUsuario: perfil.id,
+                  idDoctor: selectedDoctor!.id,
+                  nombre: nombreCtrl.text.trim(),
+                );
+                setState(() {
+                  _selectedCasoId = nuevo.id;
+                });
+                Navigator.of(ctx).pop();
+                await _loadCasos();
+              },
+              child: const Text('Crear'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Future<void> _signOut() async {
     await SoundHelper.playSelectSound();
@@ -237,6 +302,12 @@ class _UsuarioClinicaScreenState extends State<UsuarioClinicaScreen> {
                               // eliminado: chat general
                             },
                           ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          onPressed: _crearCasoDialog,
+                          icon: const Icon(Icons.add),
+                          label: const Text('Nuevo Caso'),
                         ),
                       ],
                     ),

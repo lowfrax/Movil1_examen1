@@ -43,6 +43,7 @@ dependencies:
   flutter_paypal_payment: ^1.0.8
   speech_to_text: ^7.0.0
   permission_handler: ^11.3.0
+  flutter_blue_plus: ^1.30.7
 
 dev_dependencies:
   flutter_test:
